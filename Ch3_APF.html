@@ -96,6 +96,12 @@
   .back-btn:hover { background: #e4e4e4; color: #1a1a1a; }
   .back-btn svg { display: block; }
 
+  /* Chapter eyebrow */
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
+    text-transform: uppercase; color: #888; margin-bottom: 6px;
+  }
+
   /* ── Mobile layout ── */
   @media (max-width: 760px) {
     body { padding: 0; overflow-x: hidden; }
@@ -311,6 +317,7 @@
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4L6 8l4 4"/></svg>
   Materials Science 101
 </a>
+<div class="eyebrow">Chapter 3</div>
 <h1>Atomic Packing Factor</h1>
 <div class="subtitle">Compare unit cell geometry of <b>SC</b>, <b>BCC</b>, <b>FCC</b> and <b>HCP</b>. Drag to rotate. Adjust atom size to reveal each close-packed direction.</div>
 
@@ -951,14 +958,20 @@ canvas.addEventListener('wheel', e => {
   draw();
 }, {passive:false});
 
+// Each view holds [primary, flipped]; clicking an active button toggles.
 const VIEW_PRESETS = {
-  front: { yaw: 0,    pitch: 0 },
-  top:   { yaw: 0,    pitch: Math.PI / 2 },
-  iso:   { yaw: 0.55, pitch: 0.45 }
+  front: [{ yaw: 0,    pitch: 0           }, { yaw: Math.PI,        pitch: 0           }],
+  top:   [{ yaw: 0,    pitch: Math.PI / 2 }, { yaw: 0,              pitch: -Math.PI / 2 + 0.02 }],
+  iso:   [{ yaw: 0.55, pitch: 0.45        }, { yaw: 0.55 + Math.PI, pitch: 0.45        }]
 };
+const VIEW_TOGGLE = { front:0, top:0, iso:0 };
 document.querySelectorAll('.view-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    const v = VIEW_PRESETS[btn.dataset.view];
+    const key = btn.dataset.view;
+    const wasActive = btn.classList.contains('active');
+    if (wasActive) VIEW_TOGGLE[key] = 1 - VIEW_TOGGLE[key];
+    else           VIEW_TOGGLE[key] = 0;
+    const v = VIEW_PRESETS[key][VIEW_TOGGLE[key]];
     yaw = v.yaw; pitch = v.pitch;
     document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
