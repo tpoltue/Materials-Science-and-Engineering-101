@@ -1,0 +1,2163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ch.9 — Phase Diagrams</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;700&display=swap');
+
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 18px 24px 36px;
+    font-family: "IBM Plex Sans Thai Looped",
+                 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-weight: 300;
+    color: #1a1a1a;
+    background: #fafafa;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  /* ── back button ── */
+  .back-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 13px; font-weight: 500; color: #444;
+    text-decoration: none;
+    background: #f0f0f0; border: 1px solid #ddd; border-radius: 999px;
+    padding: 5px 13px 5px 10px; margin-bottom: 10px;
+    transition: background 0.15s, color 0.15s; line-height: 1;
+  }
+  .back-btn:hover { background: #e4e4e4; color: #1a1a1a; }
+  .back-btn svg { display: block; }
+
+  /* ── header ── */
+  .page-header { margin-bottom: 12px; }
+  h1 {
+    font-family: "IBM Plex Sans Thai Looped", -apple-system, sans-serif;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    margin: 0 0 4px 0; font-size: 28px; line-height: 1.15;
+  }
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
+    text-transform: uppercase; color: #888; margin-bottom: 6px;
+  }
+  .subtitle {
+    color: #666; font-size: 14px; font-weight: 300; max-width: 760px;
+  }
+
+  /* ── primary tabs (system) ── */
+  .tabs {
+    display: flex; gap: 6px; margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .tab {
+    border: 1px solid #ccc; background: #fff;
+    padding: 8px 16px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-weight: 500; font-size: 14px;
+    color: #333; transition: all 0.15s;
+  }
+  .tab:hover { background: #f0f0f0; }
+  .tab.active { color: #1a1a1a; border-color: transparent; font-weight: 700; }
+  .tab.cuni.active { background: #FFF299; }
+  .tab.cuag.active { background: #CCD9FF; }
+  .tab.niti.active { background: #E8D6FF; }
+
+  /* ── hint strip ── */
+  .hint {
+    font-size: 12.5px; color: #666; margin: 0 0 10px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hint svg { display: inline-block; flex-shrink: 0; opacity: 0.7; }
+
+  /* ── layout ── */
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 880px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+  .right-stack { display: flex; flex-direction: column; gap: 14px; }
+  .diagram-card { display: flex; flex-direction: column; }
+  .lever-section {
+    margin-top: 14px; padding-top: 14px;
+    border-top: 1px solid #ececec;
+  }
+  .lever-section h4 {
+    font-family: "IBM Plex Sans Thai Looped", sans-serif;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 13px; margin: 0 0 8px 0; color: #333;
+  }
+
+  /* ── cards ── */
+  .card {
+    background: #fff; border: 1px solid #ddd; border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .card h3 {
+    font-family: "IBM Plex Sans Thai Looped", sans-serif;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 13px; margin: 0 0 8px 0; color: #333;
+  }
+  .diagram-header {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 8px; margin-bottom: 6px;
+  }
+  .diagram-header h3 { margin: 0; }
+  .zoom-btn {
+    border: 1px solid #ccc; background: #fff;
+    padding: 5px 11px; border-radius: 6px; cursor: pointer;
+    font-family: inherit; font-weight: 500; font-size: 11.5px;
+    color: #444; transition: all 0.15s; line-height: 1.1;
+  }
+  .zoom-btn:hover { background: #f0f0f0; }
+  .zoom-btn.active {
+    background: #FFD8B0; border-color: transparent; color: #1a1a1a; font-weight: 700;
+  }
+
+  /* ── diagram canvas wrap ── */
+  .diagram-wrap {
+    background: linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%);
+    border: 1px solid #ececec; border-radius: 6px;
+    overflow: hidden; position: relative;
+    aspect-ratio: 1.25 / 1;
+    min-height: 360px;
+    touch-action: none;
+  }
+  .diagram-wrap canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  .diagram-wrap canvas.dragging { cursor: grabbing; }
+
+  /* ── microstructure circle ── */
+  .micro-wrap {
+    background: linear-gradient(180deg, #ffffff 0%, #eef1f5 100%);
+    border: 1px solid #ececec; border-radius: 6px;
+    aspect-ratio: 1 / 1; min-height: 240px;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .micro-wrap canvas { display: block; width: 100%; height: 100%; }
+
+  /* ── phase legend ── */
+  .phase-legend {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px;
+  }
+  .leg-chip {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.3px;
+    background: #f5f5f5; border: 1px solid #ececec; color: #444;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .leg-chip .sw {
+    width: 10px; height: 10px; border-radius: 2px;
+    border: 1px solid rgba(0,0,0,0.15);
+  }
+  .leg-chip.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+  .leg-chip.active .sw { border-color: rgba(255,255,255,0.4); }
+
+  /* ── stage banner ── */
+  .stage-banner {
+    margin-top: 8px;
+    padding: 8px 11px;
+    background: #f7f7f9; border: 1px solid #ececec; border-radius: 6px;
+    font-size: 12.5px; color: #333; line-height: 1.45;
+  }
+  .stage-banner b {
+    display: block; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 11px; color: #444; margin-bottom: 3px;
+  }
+
+  /* ── phase fractions panel (below stage banner) ── */
+  .phase-fractions {
+    margin-top: 8px;
+    background: #fafafa; border: 1px solid #ececec; border-radius: 6px;
+    padding: 8px 10px;
+  }
+  .pf-head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase; color: #888; margin-bottom: 6px;
+  }
+  .pf-list { display: flex; flex-direction: column; gap: 5px; }
+  .pf-row {
+    display: grid; grid-template-columns: 14px 1fr auto;
+    align-items: center; gap: 9px;
+    font-size: 12px;
+  }
+  .pf-row .sw {
+    width: 14px; height: 14px; border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.18);
+  }
+  .pf-row .ph {
+    font-family: "Times New Roman", serif;
+    font-style: italic; font-weight: 600; color: #1a1a1a;
+  }
+  .pf-row .frac {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-weight: 700; color: #1a1a1a; font-size: 12px;
+  }
+
+  /* ── lever rule readout ── */
+  .lever {
+    display: grid; grid-template-columns: 1fr; gap: 8px;
+  }
+  .pt-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    padding: 6px 8px;
+    background: #fafafa; border: 1px solid #ececec; border-radius: 6px;
+  }
+  .pt-row .lab {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase; color: #888;
+  }
+  .pt-row .val {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-size: 13px; font-weight: 600; color: #1a1a1a;
+  }
+  .pt-row .val em {
+    font-style: normal; color: #888; font-weight: 400; font-size: 11px;
+    margin-left: 4px;
+  }
+
+  .tieline-block {
+    padding: 8px 8px 4px;
+    background: #fafafa; border: 1px solid #ececec; border-radius: 6px;
+  }
+  .tieline-block .head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase; color: #888; margin-bottom: 5px;
+  }
+  .tieline-block .endp {
+    display: grid; grid-template-columns: auto 1fr auto; gap: 6px;
+    font-size: 12px; padding: 2px 0;
+    align-items: center;
+  }
+  .tieline-block .endp .ph {
+    font-weight: 700; min-width: 36px;
+    font-family: "IBM Plex Sans Thai Looped", serif;
+  }
+  .tieline-block .endp .comp {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    color: #444;
+  }
+  .tieline-block .endp .frac {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    color: #1a1a1a; font-weight: 700;
+  }
+  .tieline-block .bar {
+    height: 6px; background: #ececec; border-radius: 999px;
+    overflow: hidden; display: flex; margin: 4px 0 6px;
+  }
+  .tieline-block .bar > span { display: block; height: 100%; }
+
+  /* fraction bar segments — coloured per phase */
+  .seg-L     { background: #6f8fd6; }
+  .seg-alpha { background: #d4b04f; }
+  .seg-beta  { background: #c87474; }
+  .seg-gamma { background: #6fc46f; }
+  .seg-delta { background: #b07ad4; }
+  .seg-fe3c  { background: #8a5fc4; }
+  .seg-ti2ni { background: #d99752; }
+  .seg-pearl { background: linear-gradient(90deg, #d4b04f 0 4px, #8a5fc4 4px 8px); background-size: 8px 100%; }
+  .seg-eutCuAg { background: linear-gradient(90deg, #d4b04f 0 4px, #c87474 4px 8px); background-size: 8px 100%; }
+  .seg-eutNiTi { background: linear-gradient(90deg, #d4b04f 0 4px, #d99752 4px 8px); background-size: 8px 100%; }
+  .seg-ledeburite { background: linear-gradient(90deg, #6fc46f 0 4px, #8a5fc4 4px 8px); background-size: 8px 100%; }
+
+  .reaction-eqn {
+    margin-top: 8px; padding: 7px 10px;
+    background: #fff7e6; border: 1px solid #f3deb0; border-radius: 6px;
+    font-size: 12px; color: #6b4a0e; font-family: "Times New Roman", serif;
+    line-height: 1.45;
+  }
+  .reaction-eqn b { color: #1a1a1a; font-style: normal; }
+
+  /* ── key features card ── */
+  .key-features {
+    margin-top: 14px;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+  }
+  .feat {
+    background: #fff; border: 1px solid #ddd; border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .feat h4 {
+    font-family: "IBM Plex Sans Thai Looped", sans-serif;
+    font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
+    font-size: 12px; margin: 0 0 5px 0; color: #444;
+  }
+  .feat p {
+    margin: 0; font-size: 12.5px; color: #555; line-height: 1.5;
+  }
+  .feat .num {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    color: #1a1a1a; font-weight: 600;
+  }
+
+  /* panel show/hide */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── small screens ── */
+  @media (max-width: 720px) {
+    body { padding: 14px 14px 28px; }
+    h1 { font-size: 21px; }
+    .subtitle { display: none; }
+    .right-stack { gap: 10px; }
+    .card { padding: 10px 11px; }
+    .diagram-wrap { min-height: 280px; aspect-ratio: 1.15 / 1; }
+    .micro-wrap { min-height: 200px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <a class="back-btn" href="index.html">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4L6 8l4 4"/></svg>
+    Materials Science 101
+  </a>
+
+  <header class="page-header">
+    <div class="eyebrow">Chapter 9</div>
+    <h1>Phase Diagrams</h1>
+    <div class="subtitle">
+      Drag the white dot anywhere inside a phase diagram to scan composition (X) and temperature (Y).
+      Watch the microstructure inside the circle evolve as you cool through liquidus, solidus, and the invariant reactions.
+    </div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab cuni active"   data-tab="cuni" role="tab" aria-selected="true">Isomorphous · Cu–Ni</button>
+    <button class="tab cuag"          data-tab="cuag" role="tab" aria-selected="false">Eutectic · Cu–Ag</button>
+    <button class="tab niti"          data-tab="niti" role="tab" aria-selected="false">Eutectoid · Fe–C</button>
+  </div>
+
+  <p class="hint">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v12M4 6l4-4 4 4M4 10l4 4 4-4"/></svg>
+    Drag the dot vertically to cool / heat at fixed composition, or horizontally to change the alloy. The microstructure on the right updates in real time.
+  </p>
+
+  <div class="layout">
+    <div class="card diagram-card">
+      <div class="diagram-header">
+        <h3 id="diagram-title">Phase Diagram</h3>
+        <button id="zoom-toggle" class="zoom-btn" style="display:none;">Zoom: α region</button>
+      </div>
+      <div class="diagram-wrap">
+        <canvas id="diagram"></canvas>
+      </div>
+      <div class="lever-section">
+        <h4>Tie Line &amp; Lever Rule</h4>
+        <div class="lever">
+          <div class="pt-row">
+            <div>
+              <div class="lab">Composition c</div>
+              <div class="val" id="readout-c">—</div>
+            </div>
+            <div>
+              <div class="lab">Temperature T</div>
+              <div class="val" id="readout-T">—</div>
+            </div>
+          </div>
+          <div class="tieline-block">
+            <div class="head" id="lever-head">Lever rule</div>
+            <div class="bar" id="lever-bar"></div>
+            <div id="lever-endpoints"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-stack">
+      <div class="card">
+        <h3>Microstructure (at current T, c)</h3>
+        <div class="micro-wrap">
+          <canvas id="micro"></canvas>
+        </div>
+        <div class="phase-legend" id="phase-legend"></div>
+        <div class="stage-banner" id="stage-banner">
+          <b id="stage-title">—</b>
+          <span id="stage-desc">—</span>
+        </div>
+        <div class="phase-fractions" id="phase-fractions" style="display:none;">
+          <div class="pf-head">Phase fractions</div>
+          <div class="pf-list" id="pf-list"></div>
+        </div>
+        <div class="reaction-eqn" id="reaction-eqn" style="display:none;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="key-features" id="key-features"></div>
+
+</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   CHAPTER 9 — INTERACTIVE PHASE DIAGRAMS
+   Cu–Ni (isomorphous), Cu–Ag (eutectic),
+   Ni–Ti (eutectoid section), Fe–Fe3C (iron–iron carbide)
+   ──────────────────────────────────────────────────────────────────── */
+
+/* ─── monotone cubic Hermite (Fritsch-Carlson) interpolation ─── */
+function ensureSlopes(arr) {
+  if (arr._slopes) return arr._slopes;
+  const n = arr.length;
+  if (n < 2) { arr._slopes = [0]; return arr._slopes; }
+  const d = new Array(n-1), m = new Array(n);
+  for (let i = 0; i < n-1; i++) d[i] = (arr[i+1].y - arr[i].y) / (arr[i+1].x - arr[i].x);
+  m[0] = d[0]; m[n-1] = d[n-2];
+  for (let i = 1; i < n-1; i++) {
+    if (d[i-1] * d[i] <= 0) m[i] = 0;
+    else m[i] = (d[i-1] + d[i]) / 2;
+  }
+  // Fritsch-Carlson monotonicity enforcement
+  for (let i = 0; i < n-1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i+1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i+1] / d[i];
+    const s = a*a + b*b;
+    if (s > 9) {
+      const tau = 3 / Math.sqrt(s);
+      m[i]   = tau * a * d[i];
+      m[i+1] = tau * b * d[i];
+    }
+  }
+  arr._slopes = m;
+  return m;
+}
+function interp(arr, x) {
+  const n = arr.length;
+  if (x <= arr[0].x)     return arr[0].y;
+  if (x >= arr[n-1].x)   return arr[n-1].y;
+  const m = ensureSlopes(arr);
+  let i = 0;
+  while (i < n-1 && arr[i+1].x < x) i++;
+  const h = arr[i+1].x - arr[i].x;
+  const t = (x - arr[i].x) / h;
+  const t2 = t*t, t3 = t2*t;
+  const h00 =  2*t3 - 3*t2 + 1;
+  const h10 =      t3 - 2*t2 + t;
+  const h01 = -2*t3 + 3*t2;
+  const h11 =      t3 -   t2;
+  return h00*arr[i].y + h10*h*m[i] + h01*arr[i+1].y + h11*h*m[i+1];
+}
+function interpInverse(arr, y) {
+  // Bisection on the smooth monotone curve
+  const n = arr.length;
+  let lo = arr[0].x, hi = arr[n-1].x;
+  const yLo = interp(arr, lo), yHi = interp(arr, hi);
+  const yMin = Math.min(yLo, yHi), yMax = Math.max(yLo, yHi);
+  if (y < yMin - 0.5 || y > yMax + 0.5) return null;
+  const inc = yHi > yLo;
+  for (let k = 0; k < 36; k++) {
+    const mid = (lo + hi) / 2;
+    const yMid = interp(arr, mid);
+    if (inc) {
+      if (yMid < y) lo = mid; else hi = mid;
+    } else {
+      if (yMid > y) lo = mid; else hi = mid;
+    }
+  }
+  return (lo + hi) / 2;
+}
+/* ─── densified path along a curve (forward or reversed) ─── */
+function pathCurve(ctx, arr, toPx, reverse=false) {
+  const xMin = arr[0].x, xMax = arr[arr.length-1].x;
+  const N = 140;
+  for (let i = 0; i <= N; i++) {
+    const t = reverse ? (N - i) / N : i / N;
+    const x = xMin + (xMax - xMin) * t;
+    const y = interp(arr, x);
+    const [px, py] = toPx(x, y);
+    ctx.lineTo(px, py);
+  }
+}
+
+/* ─── phase colours (RGB triplets for canvas pixel writes) ─── */
+const PHASE_RGB = {
+  'L':       [204, 217, 245],   // light blue (liquid)
+  'α':       [255, 240, 165],   // pale yellow
+  'β':       [255, 200, 200],   // pale pink
+  'γ':       [200, 240, 200],   // pale green
+  'δ':       [225, 210, 245],   // pale lavender
+  'Fe3C':    [200, 175, 235],   // purple
+  'Ti2Ni':   [255, 215, 175],   // warm orange
+  'α-Ti':    [255, 240, 165],
+  'β-Ti':    [255, 200, 200],
+  'α-Cu':    [255, 240, 165],
+  'β-Ag':    [255, 200, 200],
+};
+const PHASE_HEX = {
+  'L':       '#CCD9F5',
+  'α':       '#FFF0A5',
+  'β':       '#FFC8C8',
+  'γ':       '#C8F0C8',
+  'δ':       '#E1D2F5',
+  'Fe3C':    '#C8AFEB',
+  'Ti2Ni':   '#FFD7AF',
+  'α-Ti':    '#FFF0A5',
+  'β-Ti':    '#FFC8C8',
+  'α-Cu':    '#FFF0A5',
+  'β-Ag':    '#FFC8C8',
+};
+
+/* ════════════════════════════════════════════════════════════════════
+   SYSTEM 1: Cu–Ni  (Isomorphous)
+   ──────────────────────────────────────────────────────────────────── */
+const SYS_CUNI = {
+  key: 'cuni',
+  name: 'Copper–Nickel',
+  elements: ['Cu', 'Ni'],
+  xLabel: 'Composition (wt% Ni)',
+  yLabel: 'Temperature (°C)',
+  xMin: 0, xMax: 100,
+  yMin: 1000, yMax: 1600,
+  reactionType: 'isomorphous',
+  // Liquidus & solidus extracted from the reference image; smooth concave-up lens
+  // with the widest freezing range around 25-40 wt% Ni and converging slowly toward Ni.
+  liquidus: [
+    {x:0,   y:1085}, {x:5,   y:1117}, {x:10,  y:1147}, {x:15,  y:1175},
+    {x:20,  y:1200}, {x:25,  y:1222}, {x:30,  y:1242}, {x:35,  y:1260},
+    {x:40,  y:1278}, {x:45,  y:1295}, {x:50,  y:1310}, {x:55,  y:1325},
+    {x:60,  y:1340}, {x:65,  y:1355}, {x:70,  y:1370}, {x:75,  y:1385},
+    {x:80,  y:1400}, {x:85,  y:1415}, {x:90,  y:1430}, {x:95,  y:1443},
+    {x:100, y:1455}
+  ],
+  solidus: [
+    {x:0,   y:1085}, {x:5,   y:1098}, {x:10,  y:1115}, {x:15,  y:1135},
+    {x:20,  y:1155}, {x:25,  y:1175}, {x:30,  y:1195}, {x:35,  y:1218},
+    {x:40,  y:1238}, {x:45,  y:1258}, {x:50,  y:1278}, {x:55,  y:1298},
+    {x:60,  y:1318}, {x:65,  y:1335}, {x:70,  y:1355}, {x:75,  y:1370},
+    {x:80,  y:1388}, {x:85,  y:1405}, {x:90,  y:1422}, {x:95,  y:1438},
+    {x:100, y:1455}
+  ],
+  presets: [
+    {label:'Cu (pure)',   c:0,  T:1500},
+    {label:'30 wt% Ni',   c:30, T:1500},
+    {label:'50 wt% Ni',   c:50, T:1500},
+    {label:'80 wt% Ni',   c:80, T:1500},
+  ],
+  default: { c: 35, T: 1550 },
+  phaseLegend: ['L', 'α'],
+};
+
+SYS_CUNI.getRegions = function() {
+  const sys = this;
+  return [
+    {
+      name: 'L', color: PHASE_HEX['L'],
+      verts: regionVerts([
+        ['curve', sys.liquidus, false],
+        ['point', sys.xMax, sys.yMax],
+        ['point', sys.xMin, sys.yMax]
+      ])
+    },
+    {
+      name: 'L + α', color: '#f0e8b8', rotate: true, yShift: 5,
+      verts: regionVerts([
+        ['curve', sys.liquidus, false],
+        ['curve', sys.solidus, true]
+      ])
+    },
+    {
+      name: 'α', color: PHASE_HEX['α'],
+      verts: regionVerts([
+        ['curve', sys.solidus, false],
+        ['point', sys.xMax, sys.yMin],
+        ['point', sys.xMin, sys.yMin]
+      ])
+    }
+  ];
+};
+SYS_CUNI.regionFills = function(ctx, toPx) {
+  for (const r of this.getRegions()) fillPolyVerts(ctx, r.verts, r.color, toPx);
+};
+
+SYS_CUNI.drawBoundaries = function(ctx, toPx) {
+  const sys = SYS_CUNI;
+  drawCurve(ctx, sys.liquidus, toPx, '#333', 1.8);
+  drawCurve(ctx, sys.solidus,  toPx, '#333', 1.8);
+};
+
+SYS_CUNI.regionLabels = function(ctx, toPx) {
+  drawRegionLabels(ctx, toPx, this);
+};
+
+SYS_CUNI.getState = function(c, T) {
+  const sys = SYS_CUNI;
+  const liqT = interp(sys.liquidus, c);
+  const solT = interp(sys.solidus,  c);
+  if (T >= liqT) {
+    return {
+      regionLabel: 'Liquid',
+      stageTitle: 'Single phase — Liquid',
+      stageDesc:  'Above the liquidus. All atoms are randomly mixed in the molten state.',
+      phases: [{name:'L', frac:1, seg:'seg-L'}],
+      tieLine: null,
+      reactionEqn: '',
+      activePhases: ['L'],
+      grainStates: { mode:'allLiquid' }
+    };
+  }
+  if (T <= solT) {
+    return {
+      regionLabel: 'α (FCC solid solution)',
+      stageTitle: 'Fully solid — single α',
+      stageDesc: 'Below the solidus. Cu and Ni are completely miscible in the FCC lattice; a single substitutional solid solution remains.',
+      phases: [{name:'α', frac:1, seg:'seg-alpha'}],
+      tieLine: null,
+      reactionEqn: '',
+      activePhases: ['α'],
+      grainStates: { mode:'allAlpha' }
+    };
+  }
+  // Two-phase L + α: tie line at temperature T
+  const cL = interpInverse(sys.liquidus, T);
+  const cS = interpInverse(sys.solidus,  T);
+  const denom = (cS - cL);
+  const wL = denom === 0 ? 0 : (cS - c) / denom;
+  const wA = 1 - wL;
+  return {
+    regionLabel: 'L + α',
+    stageTitle: 'Two-phase — L + α',
+    stageDesc: 'Between liquidus and solidus. Solid α nucleates and grows in the melt; the tie line gives the equilibrium compositions, the lever rule the amounts.',
+    phases: [
+      {name:'L', frac:wL, seg:'seg-L'},
+      {name:'α', frac:wA, seg:'seg-alpha'}
+    ],
+    tieLine: { T:T, ends:[{name:'L', c:cL}, {name:'α', c:cS}] },
+    reactionEqn: '',
+    activePhases: ['L','α'],
+    grainStates: { mode:'liquidAlphaMix', fracAlpha: wA }
+  };
+};
+
+/* ════════════════════════════════════════════════════════════════════
+   SYSTEM 2: Cu–Ag  (Eutectic)
+   ──────────────────────────────────────────────────────────────────── */
+const SYS_CUAG = {
+  key: 'cuag',
+  name: 'Copper–Silver',
+  elements: ['Cu', 'Ag'],
+  xLabel: 'Composition (wt% Ag)',
+  yLabel: 'Temperature (°C)',
+  xMin: 0, xMax: 100,
+  yMin: 200, yMax: 1100,
+  reactionType: 'eutectic',
+  eutectic: { c: 71.9, T: 779, cAlpha: 8.0, cBeta: 91.2 },
+  // Cu-Ag curves extracted from the reference image
+  liqAlpha: [   // L/α+L liquidus on the Cu side
+    {x:0,    y:1085}, {x:5,    y:1063}, {x:10,   y:1042}, {x:15,   y:1020},
+    {x:20,   y:998},  {x:25,   y:975},  {x:30,   y:952},  {x:35,   y:932},
+    {x:40,   y:912},  {x:45,   y:892},  {x:50,   y:870},  {x:55,   y:850},
+    {x:60,   y:828},  {x:65,   y:808},  {x:70,   y:788},  {x:71.9, y:779}
+  ],
+  liqBeta: [    // L/β+L liquidus on the Ag side (near-linear in the image)
+    {x:71.9, y:779}, {x:75,   y:799}, {x:80,   y:832}, {x:85,   y:865},
+    {x:90,   y:897}, {x:95,   y:930}, {x:100,  y:962}
+  ],
+  solAlpha: [   // α/(α+L) solidus — sharp drop, concave-up
+    {x:0,   y:1085}, {x:0.5, y:1058}, {x:1,   y:1030}, {x:1.5, y:1000},
+    {x:2,   y:970},  {x:3,   y:925},  {x:4,   y:880},  {x:5,   y:845},
+    {x:6,   y:820},  {x:7,   y:800},  {x:8,   y:779}
+  ],
+  solBeta: [    // β/(β+L) solidus
+    {x:91.2, y:779}, {x:92, y:790}, {x:93, y:810}, {x:94, y:838},
+    {x:95,   y:867}, {x:96, y:892}, {x:97, y:914}, {x:98, y:934},
+    {x:99,   y:950}, {x:100, y:962}
+  ],
+  solvAlpha: [  // α/(α+β) solvus — steeper near eutectoid (high T), flattens at low T
+    {x:0,   y:200}, {x:0.5, y:240}, {x:1.0, y:320}, {x:1.5, y:400},
+    {x:2.0, y:460}, {x:3.0, y:530}, {x:4.0, y:590}, {x:5.0, y:650},
+    {x:6.0, y:700}, {x:7.0, y:740}, {x:8.0, y:779}
+  ],
+  solvBeta: [   // β/(α+β) solvus (mirror of α-solvus)
+    {x:91.2, y:779}, {x:92,   y:745}, {x:93,   y:705}, {x:94,   y:655},
+    {x:95,   y:600}, {x:96,   y:540}, {x:97,   y:470}, {x:97.5, y:400},
+    {x:98,   y:330}, {x:98.5, y:255}, {x:99,   y:215}, {x:100,  y:200}
+  ],
+  presets: [
+    {label:'5% Ag (α-rich)',     c:5,    T:1100},
+    {label:'30% Ag (hypoeut.)',  c:30,   T:1100},
+    {label:'71.9% Ag (eutectic)',c:71.9, T:1100},
+    {label:'90% Ag (hypereut.)', c:90,   T:1100},
+  ],
+  default: { c: 30, T: 1050 },
+  phaseLegend: ['L', 'α', 'β'],
+};
+
+SYS_CUAG.getRegions = function() {
+  const sys = this;
+  const eut = sys.eutectic;
+  return [
+    {
+      name: 'L', color: PHASE_HEX['L'],
+      verts: regionVerts([
+        ['curve', sys.liqAlpha, false],
+        ['curve', sys.liqBeta,  false],
+        ['point', sys.xMax, sys.yMax],
+        ['point', sys.xMin, sys.yMax]
+      ])
+    },
+    {
+      name: 'α + L', color: '#e6dec0', rotate: true,
+      verts: regionVerts([
+        ['curve', sys.liqAlpha, false],
+        ['curve', sys.solAlpha, true]
+      ])
+    },
+    {
+      name: 'β + L', color: '#e6c8c8', rotate: true,
+      verts: regionVerts([
+        ['curve', sys.liqBeta, false],
+        ['curve', sys.solBeta, true]
+      ])
+    },
+    {
+      name: 'α', color: PHASE_HEX['α'], smallFont: true,
+      verts: regionVerts([
+        ['point', 0, sys.yMin],
+        ['curve', sys.solvAlpha, false],
+        ['curve', sys.solAlpha,  true]
+      ])
+    },
+    {
+      name: 'β', color: PHASE_HEX['β'], smallFont: true,
+      verts: regionVerts([
+        ['point', 100, sys.yMin],
+        ['curve', sys.solvBeta, true],
+        ['curve', sys.solBeta,  false]
+      ])
+    },
+    {
+      name: 'α + β', color: '#f0d8d0',
+      verts: regionVerts([
+        ['point', 0, sys.yMin],
+        ['curve', sys.solvAlpha, false],
+        ['curve', sys.solvBeta,  false],
+        ['point', 100, sys.yMin]
+      ])
+    }
+  ];
+};
+SYS_CUAG.regionFills = function(ctx, toPx) {
+  for (const r of this.getRegions()) fillPolyVerts(ctx, r.verts, r.color, toPx);
+};
+
+SYS_CUAG.drawBoundaries = function(ctx, toPx) {
+  const sys = SYS_CUAG;
+  drawCurve(ctx, sys.liqAlpha, toPx, '#333', 1.8);
+  drawCurve(ctx, sys.liqBeta,  toPx, '#333', 1.8);
+  drawCurve(ctx, sys.solAlpha, toPx, '#333', 1.8);
+  drawCurve(ctx, sys.solBeta,  toPx, '#333', 1.8);
+  drawCurve(ctx, sys.solvAlpha,toPx, '#333', 1.8);
+  drawCurve(ctx, sys.solvBeta, toPx, '#333', 1.8);
+  // eutectic isotherm
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(...toPx(sys.eutectic.cAlpha, sys.eutectic.T));
+  ctx.lineTo(...toPx(sys.eutectic.cBeta,  sys.eutectic.T));
+  ctx.stroke();
+  // Eutectic point
+  drawInvariantDot(ctx, toPx(sys.eutectic.c, sys.eutectic.T), 'E');
+};
+
+SYS_CUAG.regionLabels = function(ctx, toPx) {
+  drawRegionLabels(ctx, toPx, this);
+};
+
+SYS_CUAG.getState = function(c, T) {
+  const sys = SYS_CUAG;
+  const eut = sys.eutectic;
+  // Determine which region
+  // Liquidus T at this composition:
+  const liqT_left  = c <= eut.c ? interp(sys.liqAlpha, c) : Infinity;
+  const liqT_right = c >= eut.c ? interp(sys.liqBeta,  c) : Infinity;
+  const liqT       = Math.min(liqT_left, liqT_right);
+  const solT_left  = c <= eut.cAlpha ? interp(sys.solAlpha, c) : null;
+  const solT_right = c >= eut.cBeta  ? interp(sys.solBeta,  c) : null;
+  const solvT_left  = c <= eut.cAlpha ? interp(sys.solvAlpha, c) : null;
+  const solvT_right = c >= eut.cBeta  ? interp(sys.solvBeta,  c) : null;
+
+  // Pure liquid
+  if (T >= liqT) {
+    return {
+      regionLabel:'Liquid', stageTitle:'Single phase — Liquid',
+      stageDesc:'Above the liquidus. The Cu–Ag melt is fully miscible.',
+      phases:[{name:'L',frac:1,seg:'seg-L'}], tieLine:null, reactionEqn:'',
+      activePhases:['L'], grainStates:{mode:'allLiquid'}
+    };
+  }
+  // α + L region (left of eutectic, between liqAlpha and solAlpha, T > 779)
+  if (T > eut.T && c < eut.cAlpha && solT_left !== null && T < solT_left) {
+    // Single α
+    return single(sys, 'α', 'α — Ag dissolved in Cu (FCC)',
+      'Below the α-solidus, above the α-solvus. Single FCC solid solution rich in Cu.');
+  }
+  if (T > eut.T && c > eut.cBeta && solT_right !== null && T < solT_right) {
+    return single(sys, 'β', 'β — Cu dissolved in Ag (FCC)',
+      'Below the β-solidus, above the β-solvus. Single FCC solid solution rich in Ag.');
+  }
+  if (T > eut.T && c <= eut.c && T < liqT && (solT_left === null || T >= solT_left)) {
+    // α + L
+    const cL = interpInverse(sys.liqAlpha, T);
+    const cS = interpInverse(sys.solAlpha, T);
+    const wL = (cS - c) / (cS - cL);
+    const wA = 1 - wL;
+    return {
+      regionLabel:'α + L', stageTitle:'Two-phase — α + L',
+      stageDesc:'Pro-eutectic α nucleates from the melt. The remaining liquid enriches in Ag along the liquidus.',
+      phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'α',frac:wA,seg:'seg-alpha'}],
+      tieLine:{T:T, ends:[{name:'α',c:cS},{name:'L',c:cL}]},
+      reactionEqn:'',
+      activePhases:['L','α'], grainStates:{mode:'liquidAlphaMix', fracAlpha:wA, preEut:true, cuag:true, c:c}
+    };
+  }
+  if (T > eut.T && c >= eut.c && T < liqT && (solT_right === null || T >= solT_right)) {
+    // β + L
+    const cL = interpInverse(sys.liqBeta, T);
+    const cS = interpInverse(sys.solBeta, T);
+    const wL = (c - cS) / (cL - cS);
+    const wB = 1 - wL;
+    return {
+      regionLabel:'β + L', stageTitle:'Two-phase — β + L',
+      stageDesc:'Pro-eutectic β crystallises from the melt. The remaining liquid moves down the β-liquidus toward the eutectic.',
+      phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'β',frac:wB,seg:'seg-beta'}],
+      tieLine:{T:T, ends:[{name:'L',c:cL},{name:'β',c:cS}]},
+      reactionEqn:'',
+      activePhases:['L','β'], grainStates:{mode:'liquidBetaMix', fracBeta:wB, preEut:true, cuag:true, c:c}
+    };
+  }
+  // Below eutectic (T < 779)
+  if (T <= eut.T) {
+    // ── FAR LEFT (c < 8 wt% Ag): α matrix; below solvus β precipitates inside α ──
+    if (c < eut.cAlpha) {
+      if (solvT_left !== null && T >= solvT_left) {
+        return single(sys, 'α', 'α — single phase (within solvus)',
+          'Above the α-solvus and within Cu’s solubility for Ag.');
+      }
+      // Below α-solvus → β-rich precipitates form inside the α grains
+      const cA2 = interpInverse(sys.solvAlpha, T) ?? 0;
+      const cB2 = interpInverse(sys.solvBeta,  T) ?? eut.cBeta;
+      const wA2 = (cB2 - c)/(cB2 - cA2);
+      const wB2 = 1 - wA2;
+      return {
+        regionLabel:'α + β (β precipitates)',
+        stageTitle:'α matrix · β precipitates',
+        stageDesc:'Below the α-solvus, the Ag content exceeds Cu’s solubility, so β-rich precipitates nucleate inside the original α grains.',
+        phases:[{name:'α',frac:wA2,seg:'seg-alpha'},{name:'β',frac:wB2,seg:'seg-beta'}],
+        tieLine:{T:T, ends:[{name:'α',c:cA2},{name:'β',c:cB2}]},
+        reactionEqn:'',
+        activePhases:['α','β'],
+        grainStates:{mode:'matrixPrecipitates', matrix:'α', precipitate:'β', precFrac:wB2}
+      };
+    }
+    // ── FAR RIGHT (c > 91.2 wt% Ag): β matrix; below solvus α precipitates inside β ──
+    if (c > eut.cBeta) {
+      if (solvT_right !== null && T >= solvT_right) {
+        return single(sys, 'β', 'β — single phase (within solvus)',
+          'Above the β-solvus and within Ag’s solubility for Cu.');
+      }
+      const cA2 = interpInverse(sys.solvAlpha, T) ?? eut.cAlpha;
+      const cB2 = interpInverse(sys.solvBeta,  T) ?? 100;
+      const wA2 = (cB2 - c)/(cB2 - cA2);
+      const wB2 = 1 - wA2;
+      return {
+        regionLabel:'α + β (α precipitates)',
+        stageTitle:'β matrix · α precipitates',
+        stageDesc:'Below the β-solvus, the Cu content exceeds Ag’s solubility, so α-rich precipitates nucleate inside the original β grains.',
+        phases:[{name:'α',frac:wA2,seg:'seg-alpha'},{name:'β',frac:wB2,seg:'seg-beta'}],
+        tieLine:{T:T, ends:[{name:'α',c:cA2},{name:'β',c:cB2}]},
+        reactionEqn:'',
+        activePhases:['α','β'],
+        grainStates:{mode:'matrixPrecipitates', matrix:'β', precipitate:'α', precFrac:wA2}
+      };
+    }
+    // ── MIDDLE (8 < c < 91.2): classic eutectic post-mortem ──
+    const cA = interpInverse(sys.solvAlpha, T) ?? eut.cAlpha;
+    const cB = interpInverse(sys.solvBeta,  T) ?? eut.cBeta;
+    const wA = (cB - c) / (cB - cA);
+    const wB = 1 - wA;
+    // Reaction stage: did we just cross the eutectic?
+    // Identify pro-eutectic phase (was the phase forming just above 779):
+    let proEut = null, proFrac = 0;
+    if (c < eut.c) {
+      proEut = 'α';
+      // pro-eutectic α fraction = lever rule at just above eutectic
+      proFrac = (eut.c - c) / (eut.c - eut.cAlpha);
+    } else if (c > eut.c) {
+      proEut = 'β';
+      proFrac = (c - eut.c) / (eut.cBeta - eut.c);
+    } else {
+      proEut = null; proFrac = 0;
+    }
+    const eutFrac = 1 - proFrac;
+    const reactionEqn = `<b>Eutectic at ${eut.T}°C:</b>  L (${eut.c}% Ag) → α (${eut.cAlpha}%) + β (${eut.cBeta}%)`;
+    return {
+      regionLabel:'α + β', stageTitle: proEut === null
+        ? 'Below eutectic — pure eutectic (α + β lamellae)'
+        : `Below eutectic — pro-eutectic ${proEut} + eutectic (α+β)`,
+      stageDesc: proEut === null
+        ? 'At the eutectic composition, the entire melt transformed to fine α + β lamellae in one isothermal reaction.'
+        : `Pro-eutectic ${proEut} grains formed above 779°C; the leftover liquid (at the eutectic composition) crystallised as α + β lamellar colonies.`,
+      phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'β',frac:wB,seg:'seg-beta'}],
+      tieLine:{T:T, ends:[{name:'α',c:cA},{name:'β',c:cB}]},
+      reactionEqn,
+      activePhases:['α','β'],
+      grainStates:{mode:'postEutectic', proEut, proFrac, eutFrac, lamA:'α', lamB:'β', cuag:true}
+    };
+  }
+  // Default: two-phase fallback
+  return {
+    regionLabel:'—', stageTitle:'—', stageDesc:'—',
+    phases:[], tieLine:null, reactionEqn:'', activePhases:[], grainStates:{mode:'allLiquid'}
+  };
+};
+
+function single(sys, ph, title, desc) {
+  return {
+    regionLabel: ph, stageTitle: title, stageDesc: desc,
+    phases:[{name:ph,frac:1, seg: ph==='α'?'seg-alpha':(ph==='β'?'seg-beta':(ph==='γ'?'seg-gamma':'seg-delta'))}],
+    tieLine:null, reactionEqn:'',
+    activePhases:[ph],
+    grainStates:{mode:'allSolid', phase:ph}
+  };
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   SYSTEM 3: Fe–C  (Steel eutectoid — 0…2.14 wt% C)
+   ──────────────────────────────────────────────────────────────────── */
+const SYS_NITI = {     // key kept as "niti" purely for tab data attribute compatibility
+  key: 'niti',
+  name: 'Iron–Carbon (steel eutectoid)',
+  elements: ['Fe', 'C'],
+  xLabel: 'Composition (wt% C)',
+  yLabel: 'Temperature (°C)',
+  xMin: 0, xMax: 2.14,
+  yMin: 400, yMax: 1100,
+  reactionType: 'eutectoid',
+  eutectoid: { c: 0.76, T: 727, cAlpha: 0.022, cFe3C: 6.7 },
+
+  // α / (α+γ) boundary — textbook A3 line on the α side: (0, 912) → (0.022, 727).
+  // Concave-up: nearly vertical at high T, bends to flatten as it approaches the eutectoid.
+  alphaGamma: [
+    {x:0,     y:912}, {x:0.003, y:880}, {x:0.006, y:842}, {x:0.010, y:798},
+    {x:0.013, y:768}, {x:0.016, y:750}, {x:0.019, y:736}, {x:0.022, y:727}
+  ],
+  // γ / (α+γ) boundary (A3 line on the γ side) — smooth concave drop (0, 912) → (0.76, 727)
+  gammaAlpha: [
+    {x:0,    y:912}, {x:0.05, y:892}, {x:0.10, y:875}, {x:0.15, y:858},
+    {x:0.20, y:842}, {x:0.25, y:827}, {x:0.30, y:812}, {x:0.35, y:800},
+    {x:0.40, y:788}, {x:0.45, y:777}, {x:0.50, y:768}, {x:0.55, y:759},
+    {x:0.60, y:751}, {x:0.65, y:743}, {x:0.70, y:735}, {x:0.76, y:727}
+  ],
+  // Acm — γ / (γ+Fe₃C) — from eutectoid (0.76, 727) up to (2.14, 1147), smooth slope.
+  acm: [
+    {x:0.76, y:727}, {x:0.85, y:760}, {x:0.95, y:792}, {x:1.05, y:828},
+    {x:1.15, y:862}, {x:1.25, y:898}, {x:1.40, y:950}, {x:1.55, y:1000},
+    {x:1.70, y:1045}, {x:1.85, y:1088}, {x:2.00, y:1122}, {x:2.14, y:1147}
+  ],
+  // α-solvus below 727 °C — sharp drop in carbon solubility, nearly vertical.
+  // Stored x-ascending (required by the interp helper).
+  alphaSolvus: [
+    {x:0.001, y:400}, {x:0.002, y:410}, {x:0.005, y:440}, {x:0.009, y:490},
+    {x:0.013, y:550}, {x:0.017, y:620}, {x:0.020, y:680}, {x:0.022, y:727}
+  ],
+  default: { c: 0.76, T: 1000 },
+  phaseLegend: ['γ', 'α', 'Fe3C'],
+  // Zoomed view to make the otherwise-invisible α single-phase region visible
+  zoomBounds: { xMin: 0, xMax: 0.05, yMin: 400, yMax: 950 },
+  zoomDefault: { c: 0.012, T: 700 },
+};
+
+SYS_NITI.getRegions = function() {
+  const sys = this;
+  const eut = sys.eutectoid;
+  return [
+    {
+      name: 'γ', color: PHASE_HEX['γ'],
+      verts: regionVerts([
+        ['point', sys.xMin, sys.yMax],
+        ['point', sys.xMin, 912],
+        ['curve', sys.gammaAlpha, false],
+        ['curve', sys.acm, false],
+        ['point', sys.xMax, sys.yMax]
+      ])
+    },
+    {
+      name: 'α', color: PHASE_HEX['α'], smallFont: true,
+      verts: regionVerts([
+        ['point', sys.xMin, sys.yMin],
+        ['point', sys.xMin, 912],
+        ['curve', sys.alphaGamma, false],
+        ['curve', sys.alphaSolvus, true]    // (0.022, 727) → (0.001, 400)
+      ])
+    },
+    {
+      name: 'α + γ', color: '#dde8b8',
+      verts: regionVerts([
+        ['curve', sys.alphaGamma, false],   // (0, 912) → (0.022, 727)
+        ['point', eut.c, eut.T],            // (0.76, 727)
+        ['curve', sys.gammaAlpha, true]     // (0.76, 727) → (0, 912)
+      ])
+    },
+    {
+      name: 'γ + Fe₃C', color: '#d8c8e0',
+      verts: regionVerts([
+        ['curve', sys.acm, false],          // (0.76, 727) → (2.14, 1147)
+        ['point', sys.xMax, eut.T],         // (2.14, 727)
+        ['point', eut.c, eut.T]             // (0.76, 727)
+      ])
+    },
+    {
+      name: 'α + Fe₃C', color: '#ecd8c8',
+      verts: regionVerts([
+        ['curve', sys.alphaSolvus, true],   // (0.022, 727) → (0.001, 400)
+        ['point', sys.xMax, sys.yMin],
+        ['point', sys.xMax, eut.T],
+        ['point', eut.cAlpha, eut.T]
+      ])
+    }
+  ];
+};
+SYS_NITI.regionFills = function(ctx, toPx) {
+  for (const r of this.getRegions()) fillPolyVerts(ctx, r.verts, r.color, toPx);
+};
+
+SYS_NITI.drawBoundaries = function(ctx, toPx) {
+  const sys = SYS_NITI;
+  const eut = sys.eutectoid;
+  drawCurve(ctx, sys.alphaGamma,  toPx, '#333', 1.8);
+  drawCurve(ctx, sys.gammaAlpha,  toPx, '#333', 1.8);
+  drawCurve(ctx, sys.acm,         toPx, '#333', 1.8);
+  drawCurve(ctx, sys.alphaSolvus, toPx, '#333', 1.4);
+  // Eutectoid isotherm at 727 °C, from α-end to right edge
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.8;
+  ctx.beginPath();
+  ctx.moveTo(...toPx(eut.cAlpha, eut.T));
+  ctx.lineTo(...toPx(sys.xMax,   eut.T));
+  ctx.stroke();
+  drawInvariantDot(ctx, toPx(eut.c, eut.T), 'eutectoid');
+};
+
+SYS_NITI.regionLabels = function(ctx, toPx) {
+  drawRegionLabels(ctx, toPx, this);
+};
+
+SYS_NITI.getState = function(c, T) {
+  const sys = SYS_NITI;
+  const eut = sys.eutectoid;
+
+  // Above 912 °C — fully γ everywhere in this section
+  // Otherwise classify by phase region
+  const agT = c <= eut.cAlpha ? interp(sys.alphaGamma, c) : null;
+  const gaT = c <= eut.c      ? interp(sys.gammaAlpha,  c) : null;
+  const acmT = c >= eut.c     ? interp(sys.acm,         c) : null;
+
+  if (T >= 727) {
+    // Above eutectoid horizontal
+    if (c <= eut.c) {
+      // Possibly α+γ or single γ or single α
+      if (c < eut.cAlpha && agT !== null && T < agT) {
+        return single(sys, 'α', 'α — Ferrite (BCC)',
+          'Below the α/(α+γ) transus and very low C content. Single BCC α-ferrite.');
+      }
+      if (gaT !== null && T >= gaT) {
+        return single(sys, 'γ', 'γ — Austenite (FCC)',
+          'Above the γ/(α+γ) line. Single FCC austenite with C in interstitial solution.');
+      }
+      // α + γ
+      const cA = interpInverse(sys.alphaGamma, T) ?? 0;
+      const cG = interpInverse(sys.gammaAlpha, T) ?? eut.c;
+      const wA = (cG - c)/(cG - cA);
+      const wG = 1 - wA;
+      return {
+        regionLabel:'α + γ', stageTitle:'Two-phase — α + γ',
+        stageDesc:'Pro-eutectoid ferrite (α) nucleates on austenite grain boundaries; γ enriches in C as cooling progresses toward the eutectoid.',
+        phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+        tieLine:{T:T, ends:[{name:'α',c:cA},{name:'γ',c:cG}]},
+        reactionEqn:'',
+        activePhases:['α','γ'],
+        grainStates:{mode:'mixSolid', fracA:wG, phaseA:'γ', phaseB:'α'}
+      };
+    }
+    // c > eut.c → γ + Fe₃C or pure γ above Acm
+    if (acmT !== null && T >= acmT) {
+      return single(sys, 'γ', 'γ — Austenite (FCC)',
+        'Above the Acm line. Single FCC austenite.');
+    }
+    const cG = interpInverse(sys.acm, T) ?? eut.c;
+    const cF = eut.cFe3C;
+    const wG = (cF - c)/(cF - cG);
+    const wF = 1 - wG;
+    return {
+      regionLabel:'γ + Fe₃C', stageTitle:'Two-phase — γ + Fe₃C',
+      stageDesc:'Pro-eutectoid Fe₃C precipitates on the austenite grain boundaries (Acm line). γ depletes in C toward the eutectoid composition.',
+      phases:[{name:'γ',frac:wG,seg:'seg-gamma'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+      tieLine:{T:T, ends:[{name:'γ',c:cG},{name:'Fe₃C',c:cF}]},
+      reactionEqn:'',
+      activePhases:['γ','Fe3C'],
+      grainStates:{mode:'mixSolid', fracA:wG, phaseA:'γ', phaseB:'Fe3C'}
+    };
+  }
+  // Below the eutectoid horizontal (T < 727)
+  if (c < eut.cAlpha) {
+    return single(sys, 'α', 'α — Ferrite (BCC)',
+      'Within the α-solvus. C is fully in interstitial solid solution.');
+  }
+  // α + Fe₃C: pro-eutectoid phase determined by composition relative to 0.76 %C
+  const cA = eut.cAlpha, cF = eut.cFe3C;
+  const wA = (cF - c)/(cF - cA);
+  const wF = 1 - wA;
+  let proEut, proFrac;
+  if (c < eut.c) {
+    proEut = 'α';
+    proFrac = (eut.c - c) / (eut.c - cA);
+  } else if (c > eut.c) {
+    proEut = 'Fe3C';
+    proFrac = (c - eut.c) / (cF - eut.c);
+  } else {
+    proEut = null; proFrac = 0;
+  }
+  const eutFrac = 1 - proFrac;
+  const reactionEqn = `<b>Eutectoid at 727 °C:</b>  γ (0.76 % C) → α (0.022 %) + Fe₃C (6.7 %) — known as <b>pearlite</b>`;
+  return {
+    regionLabel:'α + Fe₃C',
+    stageTitle: proEut === null
+      ? 'Eutectoid steel — fully pearlite'
+      : `${proEut === 'α' ? 'Hypoeutectoid' : 'Hypereutectoid'} steel — pro-eutectoid ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} + pearlite`,
+    stageDesc: proEut === null
+      ? 'At 0.76 wt% C the entire γ phase decomposes in one isothermal reaction into a fine α + Fe₃C lamellar structure (pearlite).'
+      : `Pro-eutectoid ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} formed above 727 °C; the remaining γ (at 0.76 % C) decomposed into pearlite (α + Fe₃C lamellae).`,
+    phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+    tieLine:{T:T, ends:[{name:'α',c:cA},{name:'Fe₃C',c:cF}]},
+    reactionEqn,
+    activePhases:['α','Fe3C'],
+    grainStates:{mode:'postEutectoidFe', proEut, proFrac, eutFrac, lamA:'α', lamB:'Fe3C'}
+  };
+};
+
+
+/* ════════════════════════════════════════════════════════════════════
+   GENERIC HELPERS
+   ──────────────────────────────────────────────────────────────────── */
+function drawCurve(ctx, arr, toPx, color='#333', w=1.5) {
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
+  ctx.setLineDash([]);
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  const xMin = arr[0].x, xMax = arr[arr.length-1].x;
+  const N = 200;
+  for (let i = 0; i <= N; i++) {
+    const x = xMin + (xMax - xMin) * i / N;
+    const y = interp(arr, x);
+    const [px, py] = toPx(x, y);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.stroke();
+}
+function drawTextAt(ctx, text, x, y, toPx) {
+  const [px, py] = toPx(x, y);
+  ctx.fillText(text, px, py);
+}
+
+/* ─── polygon utilities (centroid, sampling, Sutherland-Hodgman clipping) ─── */
+function polygonCentroid(verts) {
+  let cx = 0, cy = 0, A = 0;
+  const n = verts.length;
+  for (let i = 0; i < n; i++) {
+    const [x1, y1] = verts[i];
+    const [x2, y2] = verts[(i + 1) % n];
+    const cross = x1 * y2 - x2 * y1;
+    cx += (x1 + x2) * cross;
+    cy += (y1 + y2) * cross;
+    A  += cross;
+  }
+  A *= 0.5;
+  if (Math.abs(A) < 1e-12) {
+    let mnX = Infinity, mxX = -Infinity, mnY = Infinity, mxY = -Infinity;
+    for (const [x, y] of verts) {
+      if (x < mnX) mnX = x; if (x > mxX) mxX = x;
+      if (y < mnY) mnY = y; if (y > mxY) mxY = y;
+    }
+    return [(mnX + mxX) / 2, (mnY + mxY) / 2];
+  }
+  return [cx / (6 * A), cy / (6 * A)];
+}
+
+function sampledCurveVerts(arr, reverse=false, N=60) {
+  const out = [];
+  const xMin = arr[0].x, xMax = arr[arr.length-1].x;
+  for (let i = 0; i <= N; i++) {
+    const t = reverse ? (N - i) / N : i / N;
+    const x = xMin + (xMax - xMin) * t;
+    out.push([x, interp(arr, x)]);
+  }
+  return out;
+}
+
+function regionVerts(ops) {
+  const v = [];
+  for (const op of ops) {
+    if (op[0] === 'curve') {
+      const arr = op[1], reverse = !!op[2];
+      v.push(...sampledCurveVerts(arr, reverse));
+    } else if (op[0] === 'point') {
+      v.push([op[1], op[2]]);
+    }
+  }
+  return v;
+}
+
+function fillPolyVerts(ctx, verts, color, toPx) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  for (let i = 0; i < verts.length; i++) {
+    const [px, py] = toPx(verts[i][0], verts[i][1]);
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
+function clipPolyEdge(verts, inside, intersect) {
+  if (verts.length === 0) return [];
+  const out = [];
+  let s = verts[verts.length - 1];
+  for (const p of verts) {
+    const pIn = inside(p), sIn = inside(s);
+    if (pIn) {
+      if (!sIn) out.push(intersect(s, p));
+      out.push(p);
+    } else if (sIn) {
+      out.push(intersect(s, p));
+    }
+    s = p;
+  }
+  return out;
+}
+function clipPolygon(verts, b) {
+  let v = verts;
+  v = clipPolyEdge(v, p => p[0] >= b.xMin, (a, c) => { const t = (b.xMin - a[0]) / (c[0] - a[0]); return [b.xMin, a[1] + t*(c[1]-a[1])]; });
+  v = clipPolyEdge(v, p => p[0] <= b.xMax, (a, c) => { const t = (b.xMax - a[0]) / (c[0] - a[0]); return [b.xMax, a[1] + t*(c[1]-a[1])]; });
+  v = clipPolyEdge(v, p => p[1] >= b.yMin, (a, c) => { const t = (b.yMin - a[1]) / (c[1] - a[1]); return [a[0] + t*(c[0]-a[0]), b.yMin]; });
+  v = clipPolyEdge(v, p => p[1] <= b.yMax, (a, c) => { const t = (b.yMax - a[1]) / (c[1] - a[1]); return [a[0] + t*(c[0]-a[0]), b.yMax]; });
+  return v;
+}
+
+/* ─── current axes / clamp bounds (respects the zoom toggle) ─── */
+let zoomActive = false;
+function getBounds() {
+  if (zoomActive && currentSystem && currentSystem.zoomBounds) {
+    return currentSystem.zoomBounds;
+  }
+  return {
+    xMin: currentSystem.xMin, xMax: currentSystem.xMax,
+    yMin: currentSystem.yMin, yMax: currentSystem.yMax
+  };
+}
+
+/* ─── Shared region-label renderer: places each label at the centroid of the
+   region's visible polygon (clipped to the current bounds). ─── */
+function drawRegionLabels(ctx, toPx, sys) {
+  if (!sys.getRegions) return;
+  const bounds = getBounds();
+  for (const r of sys.getRegions()) {
+    const visible = clipPolygon(r.verts, bounds);
+    if (visible.length < 3) continue;
+    let [cx, cy] = polygonCentroid(visible);
+    if (r.yShift) cy += r.yShift;
+    if (r.xShift) cx += r.xShift;
+    const [px, py] = toPx(cx, cy);
+    const sizePx = (r.smallFont && !zoomActive) ? 13 : 17;
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'italic 600 ' + sizePx + 'px "Times New Roman", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (r.rotate) {
+      let lpx = Infinity, rpx = -Infinity, lp, rp;
+      for (const v of visible) {
+        const p = toPx(v[0], v[1]);
+        if (p[0] < lpx) { lpx = p[0]; lp = p; }
+        if (p[0] > rpx) { rpx = p[0]; rp = p; }
+      }
+      const angle = (lp && rp) ? Math.atan2(rp[1] - lp[1], rp[0] - lp[0]) : 0;
+      ctx.save();
+      ctx.translate(px, py);
+      ctx.rotate(angle);
+      ctx.fillText(r.name, 0, 0);
+      ctx.restore();
+    } else {
+      ctx.fillText(r.name, px, py);
+    }
+  }
+}
+function drawInvariantDot(ctx, pt, kind='eutectic') {
+  ctx.fillStyle = '#1a1a1a';
+  ctx.beginPath();
+  ctx.arc(pt[0], pt[1], 3.5, 0, 2*Math.PI);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   PHASE DIAGRAM CANVAS — render + drag
+   ──────────────────────────────────────────────────────────────────── */
+const diaCanvas = document.getElementById('diagram');
+const diaCtx = diaCanvas.getContext('2d');
+
+let currentSystem = SYS_CUNI;
+let dotC = currentSystem.default.c;
+let dotT = currentSystem.default.T;
+let dragging = false;
+let DPR = 1;
+let DW = 0, DH = 0;
+const DIA_MARGINS = { l: 56, r: 24, t: 22, b: 50 };
+
+function diaToPx(c, T) {
+  const b = getBounds();
+  const w = DW - DIA_MARGINS.l - DIA_MARGINS.r;
+  const h = DH - DIA_MARGINS.t - DIA_MARGINS.b;
+  const px = DIA_MARGINS.l + (c - b.xMin)/(b.xMax - b.xMin) * w;
+  const py = DIA_MARGINS.t + (b.yMax - T)/(b.yMax - b.yMin) * h;
+  return [px, py];
+}
+function pxToWorld(px, py) {
+  const b = getBounds();
+  const w = DW - DIA_MARGINS.l - DIA_MARGINS.r;
+  const h = DH - DIA_MARGINS.t - DIA_MARGINS.b;
+  const c = b.xMin + (px - DIA_MARGINS.l)/w * (b.xMax - b.xMin);
+  const T = b.yMax - (py - DIA_MARGINS.t)/h * (b.yMax - b.yMin);
+  return [c, T];
+}
+
+function resizeDia() {
+  DPR = window.devicePixelRatio || 1;
+  const rect = diaCanvas.getBoundingClientRect();
+  DW = Math.round(rect.width) || 600;
+  DH = Math.round(rect.height) || 0;
+  if (DH < 20) DH = Math.round(DW / 1.25);
+  diaCanvas.width = Math.round(DW * DPR);
+  diaCanvas.height = Math.round(DH * DPR);
+  diaCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  renderAll();
+}
+new ResizeObserver(resizeDia).observe(diaCanvas);
+
+function drawAxes(ctx) {
+  const sys = currentSystem;
+  const b = getBounds();
+  const [x0,y0] = diaToPx(b.xMin, b.yMin);
+  const [x1,y1] = diaToPx(b.xMax, b.yMax);
+  // border
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 1.2;
+  ctx.strokeRect(x1, y1, x0-x1, y0-y1);
+
+  // x-axis ticks
+  ctx.fillStyle = '#444';
+  ctx.font = '11px "IBM Plex Sans Thai Looped", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  const xTicks = computeTicks(b.xMin, b.xMax);
+  for (const t of xTicks) {
+    const [px, py] = diaToPx(t, b.yMin);
+    ctx.strokeStyle = '#bbb';
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px, py + 4);
+    ctx.stroke();
+    ctx.fillText(t.toString(), px, py + 6);
+  }
+  // y-axis ticks
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  const yTicks = computeTicks(b.yMin, b.yMax);
+  for (const t of yTicks) {
+    const [px, py] = diaToPx(b.xMin, t);
+    ctx.strokeStyle = '#bbb';
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.lineTo(px - 4, py);
+    ctx.stroke();
+    ctx.fillText(t.toString(), px - 6, py);
+  }
+  // axis labels
+  ctx.fillStyle = '#333';
+  ctx.font = '600 12px "IBM Plex Sans Thai Looped", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText(sys.xLabel, (x0+x1)/2, DH - 18);
+  ctx.save();
+  ctx.translate(14, (y0+y1)/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.textBaseline = 'middle';
+  ctx.fillText(sys.yLabel, 0, 0);
+  ctx.restore();
+  // Element labels under x-axis
+  ctx.font = '600 11px "IBM Plex Sans Thai Looped", sans-serif';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+  ctx.fillStyle = '#666';
+  ctx.fillText(sys.elements[0], x1, DH - 32);
+  ctx.textAlign = 'right';
+  ctx.fillText(sys.elements[1], x0, DH - 32);
+}
+
+function computeTicks(min, max) {
+  const range = max - min;
+  let step, decimals = 0;
+  if (range >= 1000) step = 100;
+  else if (range >= 500) step = 100;
+  else if (range >= 100) step = 20;
+  else if (range >= 50)  step = 10;
+  else if (range >= 10)  step = 2;
+  else if (range >= 5)   step = 1;
+  else if (range >= 1)   { step = 0.2; decimals = 1; }
+  else if (range >= 0.2) { step = 0.05; decimals = 2; }
+  else if (range >= 0.05){ step = 0.01; decimals = 3; }
+  else                   { step = range/5; decimals = 4; }
+  const ticks = [];
+  const first = Math.ceil(min/step)*step;
+  for (let t = first; t <= max + 1e-9; t += step) {
+    ticks.push(+t.toFixed(decimals + 1));
+  }
+  return ticks;
+}
+
+function drawTieLine(ctx, state) {
+  if (!state.tieLine) return;
+  const t = state.tieLine.T;
+  const e = state.tieLine.ends;
+  const b = getBounds();
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1.2;
+  ctx.setLineDash([4, 3]);
+  ctx.beginPath();
+  ctx.moveTo(...diaToPx(e[0].c, t));
+  ctx.lineTo(...diaToPx(e[1].c, t));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // endpoints — draw only if inside bounds; otherwise show an off-screen indicator
+  for (const ep of e) {
+    if (ep.c >= b.xMin && ep.c <= b.xMax) {
+      const [px, py] = diaToPx(ep.c, t);
+      ctx.fillStyle = '#fff';
+      ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 1.6;
+      ctx.beginPath(); ctx.arc(px, py, 4, 0, 2*Math.PI);
+      ctx.fill(); ctx.stroke();
+    } else if (ep.c > b.xMax) {
+      // Indicator at right plot edge: tie line continues to ep.name at ep.c
+      const [pxEdge, pyEdge] = diaToPx(b.xMax, t);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.moveTo(pxEdge - 1, pyEdge);
+      ctx.lineTo(pxEdge - 9, pyEdge - 4);
+      ctx.lineTo(pxEdge - 9, pyEdge + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.font = '600 10.5px "JetBrains Mono", "SF Mono", monospace';
+      ctx.fillStyle = '#1a1a1a';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      const lbl = `→ ${ep.name} ${ep.c.toFixed(2)} %`;
+      ctx.fillText(lbl, pxEdge - 4, pyEdge - 4);
+    } else if (ep.c < b.xMin) {
+      const [pxEdge, pyEdge] = diaToPx(b.xMin, t);
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.moveTo(pxEdge + 1, pyEdge);
+      ctx.lineTo(pxEdge + 9, pyEdge - 4);
+      ctx.lineTo(pxEdge + 9, pyEdge + 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.font = '600 10.5px "JetBrains Mono", "SF Mono", monospace';
+      ctx.fillStyle = '#1a1a1a';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      const lbl = `← ${ep.name} ${ep.c.toFixed(3)} %`;
+      ctx.fillText(lbl, pxEdge + 4, pyEdge - 4);
+    }
+  }
+}
+
+function drawDot(ctx, c, T) {
+  const [px, py] = diaToPx(c, T);
+  const b = getBounds();
+  // Vertical guide
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([2, 3]);
+  ctx.beginPath();
+  ctx.moveTo(px, diaToPx(b.xMin, b.yMin)[1]);
+  ctx.lineTo(px, diaToPx(b.xMin, b.yMax)[1]);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // The dot
+  ctx.beginPath();
+  ctx.arc(px, py, 8, 0, 2*Math.PI);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+  // inner cross
+  ctx.beginPath();
+  ctx.moveTo(px - 4, py); ctx.lineTo(px + 4, py);
+  ctx.moveTo(px, py - 4); ctx.lineTo(px, py + 4);
+  ctx.strokeStyle = '#1a1a1a';
+  ctx.lineWidth = 1.4;
+  ctx.stroke();
+}
+
+/* Drawn OUTSIDE the plot clip so it never gets cut off near edges, and flips
+   horizontally when there isn't room to the right of the dot. */
+function drawDotLabel(ctx, c, T) {
+  const [px, py] = diaToPx(c, T);
+  ctx.font = '600 12px "JetBrains Mono", "SF Mono", monospace';
+  ctx.textBaseline = 'middle';
+  const txt = `${formatComp(c)} · ${T.toFixed(0)} °C`;
+  const tw = ctx.measureText(txt).width;
+  const pad = 5, off = 14;
+  const boxW = tw + pad * 2;
+  const boxH = 18;
+  const rightLimit = DW - 4;
+  // Default place to the right; flip to left if we'd run off the canvas
+  let boxX, anchorX, align;
+  if (px + off + boxW <= rightLimit) {
+    boxX   = px + off;
+    anchorX = boxX + pad;
+    align  = 'left';
+  } else {
+    boxX   = px - off - boxW;
+    anchorX = boxX + boxW - pad;
+    align  = 'right';
+  }
+  // Keep label inside top/bottom of canvas too
+  let labelY = py - 12;
+  if (labelY - boxH/2 < 4) labelY = py + 12;
+  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  ctx.fillRect(boxX, labelY - boxH/2, boxW, boxH);
+  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(boxX + 0.5, labelY - boxH/2 + 0.5, boxW - 1, boxH - 1);
+  ctx.fillStyle = '#1a1a1a';
+  ctx.textAlign = align;
+  ctx.fillText(txt, anchorX, labelY);
+}
+
+function formatComp(c) {
+  if (currentSystem.xMax - currentSystem.xMin > 10) return c.toFixed(1) + ' wt%';
+  return c.toFixed(2) + ' wt%';
+}
+
+function drawDiagram() {
+  diaCtx.clearRect(0, 0, DW, DH);
+  // Outer background
+  diaCtx.fillStyle = '#fff';
+  diaCtx.fillRect(0, 0, DW, DH);
+
+  // Clip to plot area
+  const sys = currentSystem;
+  const b = getBounds();
+  const [x0,y0] = diaToPx(b.xMin, b.yMin);
+  const [x1,y1] = diaToPx(b.xMax, b.yMax);
+  diaCtx.save();
+  diaCtx.beginPath();
+  diaCtx.rect(Math.min(x0,x1), Math.min(y0,y1), Math.abs(x1-x0), Math.abs(y1-y0));
+  diaCtx.clip();
+
+  // Region fills
+  sys.regionFills(diaCtx, diaToPx);
+  // Boundary curves
+  sys.drawBoundaries(diaCtx, diaToPx);
+  // Region labels
+  sys.regionLabels(diaCtx, diaToPx);
+
+  // Tie line and dot (above everything inside plot)
+  const state = sys.getState(dotC, dotT);
+  drawTieLine(diaCtx, state);
+  drawDot(diaCtx, dotC, dotT);
+
+  diaCtx.restore();
+
+  // Axes & ticks + the c/T readout — drawn unclipped so the label never gets cut off
+  drawAxes(diaCtx);
+  drawDotLabel(diaCtx, dotC, dotT);
+
+  return state;
+}
+
+/* ─── pointer interaction ─── */
+function handlePointer(e) {
+  const rect = diaCanvas.getBoundingClientRect();
+  const px = e.clientX - rect.left;
+  const py = e.clientY - rect.top;
+  let [c, T] = pxToWorld(px, py);
+  const b = getBounds();
+  c = Math.max(b.xMin, Math.min(b.xMax, c));
+  T = Math.max(b.yMin, Math.min(b.yMax, T));
+  dotC = c; dotT = T;
+  renderAll();
+}
+diaCanvas.addEventListener('pointerdown', (e) => {
+  dragging = true;
+  diaCanvas.classList.add('dragging');
+  diaCanvas.setPointerCapture(e.pointerId);
+  handlePointer(e);
+});
+diaCanvas.addEventListener('pointermove', (e) => {
+  if (!dragging) return;
+  handlePointer(e);
+});
+diaCanvas.addEventListener('pointerup', (e) => {
+  dragging = false;
+  diaCanvas.classList.remove('dragging');
+  diaCanvas.releasePointerCapture(e.pointerId);
+});
+diaCanvas.addEventListener('pointercancel', () => {
+  dragging = false;
+  diaCanvas.classList.remove('dragging');
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   MICROSTRUCTURE CIRCLE
+   ──────────────────────────────────────────────────────────────────── */
+const microCanvas = document.getElementById('micro');
+const microCtx = microCanvas.getContext('2d');
+
+const N_GRAINS = 26;
+let GRAINS = [];        // {cx, cy, rank, angle, stripeSpacing}
+let MW = 0, MH = 0;
+let grainMap = null;    // Uint8Array
+let boundaryMap = null;
+
+function rngSeed(seed) {
+  let s = seed;
+  return () => {
+    s = (s * 9301 + 49297) % 233280;
+    return s / 233280;
+  };
+}
+
+function buildGrains() {
+  const rng = rngSeed(7);
+  GRAINS = [];
+  const cx = MW/2, cy = MH/2, R = Math.min(MW, MH)/2 - 4;
+  // Poisson-disc-like sampling
+  const minDist = R * 0.32;
+  let tries = 0;
+  while (GRAINS.length < N_GRAINS && tries < 8000) {
+    tries++;
+    const r = Math.sqrt(rng()) * (R - 6);
+    const posAng = rng() * 2 * Math.PI;
+    const x = cx + r * Math.cos(posAng);
+    const y = cy + r * Math.sin(posAng);
+    let ok = true;
+    for (const g of GRAINS) {
+      const dx = g.cx - x, dy = g.cy - y;
+      if (dx*dx + dy*dy < minDist*minDist) { ok = false; break; }
+    }
+    if (ok) {
+      const lamAng = rng() * Math.PI;
+      const spacing = (MW / 50) + rng() * (MW / 90);   // scales with canvas size
+      GRAINS.push({
+        cx: x, cy: y,
+        rank: GRAINS.length / N_GRAINS,
+        angle: lamAng,
+        cosA: Math.cos(lamAng),
+        sinA: Math.sin(lamAng),
+        stripeSpacing: spacing
+      });
+    }
+  }
+  // Re-rank with random shuffle so solidification order isn't spatially biased
+  const idx = GRAINS.map((_, i) => i);
+  for (let i = idx.length-1; i > 0; i--) {
+    const j = Math.floor(rng() * (i+1));
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+  idx.forEach((origIdx, newRank) => {
+    GRAINS[origIdx].rank = (newRank + 0.5) / GRAINS.length;
+  });
+}
+
+function buildGrainMap() {
+  if (MW <= 0 || MH <= 0) return;
+  grainMap = new Uint8Array(MW * MH);
+  boundaryMap = new Uint8Array(MW * MH);
+  const cx = MW/2, cy = MH/2, R = Math.min(MW, MH)/2 - 3;
+  const R2 = R * R;
+  for (let y = 0; y < MH; y++) {
+    for (let x = 0; x < MW; x++) {
+      const dx = x - cx, dy = y - cy;
+      if (dx*dx + dy*dy > R2) { grainMap[y*MW+x] = 0; continue; }
+      let best = 0, bestD = Infinity;
+      for (let i = 0; i < GRAINS.length; i++) {
+        const ddx = x - GRAINS[i].cx, ddy = y - GRAINS[i].cy;
+        const d = ddx*ddx + ddy*ddy;
+        if (d < bestD) { bestD = d; best = i + 1; }
+      }
+      grainMap[y*MW+x] = best;
+    }
+  }
+  // boundary detection — only between two non-zero grains (don't trace the
+  // circle perimeter, which would paint a dark ring inside the stroked border)
+  for (let y = 1; y < MH-1; y++) {
+    for (let x = 1; x < MW-1; x++) {
+      const idx = y*MW + x;
+      const g = grainMap[idx];
+      if (g === 0) continue;
+      const n1 = grainMap[idx-1],  n2 = grainMap[idx+1];
+      const n3 = grainMap[idx-MW], n4 = grainMap[idx+MW];
+      if ((n1 !== 0 && n1 !== g) || (n2 !== 0 && n2 !== g) ||
+          (n3 !== 0 && n3 !== g) || (n4 !== 0 && n4 !== g)) {
+        boundaryMap[idx] = 1;
+      }
+    }
+  }
+}
+
+function resizeMicro() {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = microCanvas.getBoundingClientRect();
+  const cssSize = Math.max(rect.width || 260, rect.height || 260);
+  // Match the display's effective pixel density for crisp grains (cap for perf).
+  const target = Math.min(520, Math.max(360, Math.round(cssSize * Math.min(dpr, 2))));
+  MW = MH = target;
+  microCanvas.width = MW;
+  microCanvas.height = MH;
+  microCtx.setTransform(1, 0, 0, 1, 0, 0);
+  buildGrains();
+  buildGrainMap();
+  renderMicro(currentSystem.getState(dotC, dotT));
+}
+new ResizeObserver(resizeMicro).observe(microCanvas);
+
+/* ─── Per-grain state computation ─── */
+function computeGrainStates(state) {
+  const gs = state.grainStates || { mode: 'allLiquid' };
+  const out = new Array(GRAINS.length);
+  for (let i = 0; i < GRAINS.length; i++) {
+    const g = GRAINS[i];
+    out[i] = decideGrainState(gs, g.rank);
+  }
+  return out;
+}
+
+function decideGrainState(gs, rank) {
+  // Returns { phase: <name>, lamellar: bool, lamA, lamB }
+  switch (gs.mode) {
+    case 'allLiquid':  return { phase:'L' };
+    case 'allAlpha':   return { phase:'α' };
+    case 'allSolid':   return { phase: gs.phase };
+    case 'liquidAlphaMix': return rank < (gs.fracAlpha || 0) ? { phase:'α' } : { phase:'L' };
+    case 'liquidBetaMix':  return rank < (gs.fracBeta || 0)  ? { phase:'β' } : { phase:'L' };
+    case 'liquidGammaMix': return rank < (gs.fracGamma||0)   ? { phase:'γ' } : { phase:'L' };
+    case 'liquidDeltaMix': return rank < (gs.fracDelta||0)   ? { phase:'δ' } : { phase:'L' };
+    case 'liquidFe3CMix':  return rank < (gs.fracFe3C ||0)   ? { phase:'Fe3C' } : { phase:'L' };
+    case 'mixSolid': {
+      // fracA refers to phaseA in the pair
+      return rank < gs.fracA ? { phase: gs.phaseA } : { phase: gs.phaseB };
+    }
+    case 'postEutectic': {
+      // pro-eutectic phase + lamellar α+β colonies (Cu-Ag)
+      if (rank < gs.proFrac && gs.proEut) return { phase: gs.proEut };
+      return { lamellar:true, lamA: gs.lamA, lamB: gs.lamB };
+    }
+    case 'matrixPrecipitates': {
+      // every grain = solid matrix with tiny precipitate specks scattered inside
+      return { precipitates:true, matrix: gs.matrix, precipitate: gs.precipitate, precFrac: gs.precFrac };
+    }
+    case 'postEutectoidNiTi': {
+      if (rank < gs.proFrac && gs.proEut) return { phase: gs.proEut };
+      return { lamellar:true, lamA: gs.lamA, lamB: gs.lamB };
+    }
+    case 'postEutectoidFe': {
+      if (rank < gs.proFrac) return { phase: gs.proEut === 'Fe3C' ? 'Fe3C' : 'α' };
+      return { lamellar:true, lamA:'α', lamB:'Fe3C' };
+    }
+    case 'castIron': {
+      if (gs.proEut === 'γ→pearlite' && rank < gs.proFrac) {
+        // pro-eutectic γ has now decomposed to pearlite (lamellar α+Fe3C)
+        return { lamellar:true, lamA:'α', lamB:'Fe3C' };
+      }
+      if (gs.proEut === 'Fe3C' && rank < gs.proFrac) {
+        return { phase:'Fe3C' };
+      }
+      // transformed ledeburite: was γ+Fe3C eutectic; γ→pearlite at 727. Mix of
+      // discrete Fe3C grains and pearlite colonies.
+      // Use a sub-rank trick: half of these become solid Fe3C grains, half lamellar
+      const subRank = (rank - gs.proFrac) / (gs.eutFrac || 1);
+      if (subRank < 0.5) return { phase:'Fe3C' };
+      return { lamellar:true, lamA:'α', lamB:'Fe3C' };
+    }
+    default: return { phase:'L' };
+  }
+}
+
+/* ─── Pack a phase colour as little-endian RGBA32 (ABGR in memory) ─── */
+function packU32(rgb, alpha=255) {
+  return ((alpha & 0xff) << 24) | ((rgb[2] & 0xff) << 16) | ((rgb[1] & 0xff) << 8) | (rgb[0] & 0xff);
+}
+function darkenU32(rgb, k=0.32) {
+  return packU32([Math.round(rgb[0]*k), Math.round(rgb[1]*k), Math.round(rgb[2]*k)]);
+}
+const PHASE_U32 = {};
+const PHASE_U32_DARK = {};
+for (const k in PHASE_RGB) {
+  PHASE_U32[k]      = packU32(PHASE_RGB[k]);
+  PHASE_U32_DARK[k] = darkenU32(PHASE_RGB[k]);
+}
+const PHASE_U32_FALLBACK = packU32([200,200,200]);
+const TRANSPARENT_U32   = 0;
+
+/* Needle geometry (recomputed per render based on current canvas size) */
+let NEEDLE_HALF_LEN = 10;
+let NEEDLE_HALF_W   = 2;
+let NEEDLE_CELL_U   = 28;
+let NEEDLE_CELL_V   = 10;
+let NEEDLE_CELLS_PER_NEEDLE = 4;     // cellArea / needleArea — set in renderMicro
+
+/* ─── Rendering the circle (HD, Uint32 writes, liquid has no grain boundaries) ─── */
+function renderMicro(state) {
+  if (!grainMap) return;
+  // Needle dimensions scale with canvas resolution so they read at the same visual size
+  NEEDLE_HALF_LEN = Math.max(7,   MW * 0.025);
+  NEEDLE_HALF_W   = Math.max(1.5, MW * 0.005);
+  NEEDLE_CELL_U   = NEEDLE_HALF_LEN * 2 + NEEDLE_HALF_W * 4;
+  NEEDLE_CELL_V   = NEEDLE_HALF_W   * 5;
+  const needleArea = (2 * NEEDLE_HALF_LEN) * (2 * NEEDLE_HALF_W);
+  const cellArea   = NEEDLE_CELL_U * NEEDLE_CELL_V;
+  NEEDLE_CELLS_PER_NEEDLE = cellArea / needleArea;
+  const grainStates = computeGrainStates(state);
+  // Pre-resolve fast lookups per grain to avoid object dispatch in the hot loop
+  const N = GRAINS.length;
+  const grainSolid = new Uint8Array(N);
+  const grainPhaseU32 = new Uint32Array(N);
+  const grainLamA = new Uint32Array(N);
+  const grainLamB = new Uint32Array(N);
+  const grainIsLam = new Uint8Array(N);
+  const grainCx   = new Float32Array(N);
+  const grainCy   = new Float32Array(N);
+  const grainCos  = new Float32Array(N);
+  const grainSin  = new Float32Array(N);
+  const grainSpc  = new Float32Array(N);
+  const grainHasPrec   = new Uint8Array(N);
+  const grainPrecMat   = new Uint32Array(N);     // matrix colour
+  const grainPrecPart  = new Uint32Array(N);     // precipitate colour
+  const grainPrecThr   = new Uint16Array(N);     // threshold out of 4096
+  for (let i = 0; i < N; i++) {
+    const gs = grainStates[i], gr = GRAINS[i];
+    grainCx[i] = gr.cx; grainCy[i] = gr.cy;
+    grainCos[i] = gr.cosA; grainSin[i] = gr.sinA;
+    grainSpc[i] = gr.stripeSpacing;
+    if (gs.lamellar) {
+      grainIsLam[i] = 1;
+      grainSolid[i] = 1;
+      grainLamA[i] = PHASE_U32[gs.lamA] ?? PHASE_U32_FALLBACK;
+      grainLamB[i] = PHASE_U32[gs.lamB] ?? PHASE_U32_FALLBACK;
+    } else if (gs.precipitates) {
+      grainIsLam[i] = 0;
+      grainSolid[i] = 1;
+      grainHasPrec[i]  = 1;
+      grainPrecMat[i]  = PHASE_U32[gs.matrix]      ?? PHASE_U32_FALLBACK;
+      grainPrecPart[i] = PHASE_U32[gs.precipitate] ?? PHASE_U32_FALLBACK;
+      // Convert area-fraction → per-cell probability based on needle/cell area ratio
+      const frac = Math.max(0.015, Math.min(gs.precFrac || 0, 0.40));
+      grainPrecThr[i]  = Math.min(4095, Math.round(frac * NEEDLE_CELLS_PER_NEEDLE * 4096));
+    } else {
+      grainIsLam[i] = 0;
+      grainSolid[i] = gs.phase === 'L' ? 0 : 1;
+      grainPhaseU32[i] = PHASE_U32[gs.phase] ?? PHASE_U32_FALLBACK;
+    }
+  }
+
+  const imgData = microCtx.createImageData(MW, MH);
+  const buf32 = new Uint32Array(imgData.data.buffer);
+  const len = MW * MH;
+  for (let idx = 0; idx < len; idx++) {
+    const g = grainMap[idx];
+    if (g === 0) { buf32[idx] = TRANSPARENT_U32; continue; }
+    const gi = g - 1;
+    let colU32;
+    if (grainIsLam[gi]) {
+      const x = idx % MW, y = (idx / MW) | 0;
+      const proj = (x - grainCx[gi]) * grainCos[gi] + (y - grainCy[gi]) * grainSin[gi];
+      const stripe = Math.floor(proj / grainSpc[gi]);
+      colU32 = (stripe & 1) === 0 ? grainLamA[gi] : grainLamB[gi];
+    } else if (grainHasPrec[gi]) {
+      // Needle-like precipitates aligned with each grain's own orientation.
+      const x = idx % MW, y = (idx / MW) | 0;
+      const cosA = grainCos[gi], sinA = grainSin[gi];
+      const dx = x - grainCx[gi], dy = y - grainCy[gi];
+      // Rotate pixel into grain-local frame: u along needle direction, v perpendicular
+      const u = dx * cosA + dy * sinA;
+      const v = -dx * sinA + dy * cosA;
+      // Tile (u, v) into rectangular cells; each cell either has one needle or none
+      const cu = Math.floor(u / NEEDLE_CELL_U);
+      const cv = Math.floor(v / NEEDLE_CELL_V);
+      const uInCell = u - cu * NEEDLE_CELL_U - NEEDLE_CELL_U * 0.5;
+      const vInCell = v - cv * NEEDLE_CELL_V - NEEDLE_CELL_V * 0.5;
+      const h = ((cu * 0x9E3779B1) ^ (cv * 0xC2B2AE3D) ^ ((gi+1) * 0x27D4EB2F)) >>> 0;
+      const hasNeedle = (h & 0xfff) < grainPrecThr[gi];
+      const inNeedle = hasNeedle
+        && uInCell > -NEEDLE_HALF_LEN && uInCell < NEEDLE_HALF_LEN
+        && vInCell > -NEEDLE_HALF_W   && vInCell < NEEDLE_HALF_W;
+      colU32 = inNeedle ? grainPrecPart[gi] : grainPrecMat[gi];
+    } else {
+      colU32 = grainPhaseU32[gi];
+    }
+    // Only draw the grain boundary line if THIS grain is solid; liquid grains
+    // merge into one uniform pool so no boundaries are shown until nucleation.
+    if (boundaryMap[idx] && grainSolid[gi]) {
+      // Recompute darker tone of current pixel colour
+      const r = colU32 & 0xff;
+      const g8 = (colU32 >>> 8) & 0xff;
+      const b = (colU32 >>> 16) & 0xff;
+      buf32[idx] = (0xff << 24) | ((Math.round(b*0.32) & 0xff) << 16) | ((Math.round(g8*0.32) & 0xff) << 8) | (Math.round(r*0.32) & 0xff);
+    } else {
+      buf32[idx] = colU32;
+    }
+  }
+  microCtx.putImageData(imgData, 0, 0);
+  // border circle
+  microCtx.beginPath();
+  microCtx.arc(MW/2, MH/2, Math.min(MW,MH)/2 - 3, 0, 2*Math.PI);
+  microCtx.lineWidth = Math.max(1.4, MW / 240);
+  microCtx.strokeStyle = '#888';
+  microCtx.stroke();
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   STATE PANEL UPDATE
+   ──────────────────────────────────────────────────────────────────── */
+const elReadoutC  = document.getElementById('readout-c');
+const elReadoutT  = document.getElementById('readout-T');
+const elStageTitle= document.getElementById('stage-title');
+const elStageDesc = document.getElementById('stage-desc');
+const elLeverHead = document.getElementById('lever-head');
+const elLeverBar  = document.getElementById('lever-bar');
+const elLeverEnd  = document.getElementById('lever-endpoints');
+const elReactEqn  = document.getElementById('reaction-eqn');
+const elLegend    = document.getElementById('phase-legend');
+const elPhaseFrac = document.getElementById('phase-fractions');
+const elPfList    = document.getElementById('pf-list');
+
+function updateState(state) {
+  elReadoutC.textContent = formatComp(dotC) + ' ' + currentSystem.elements[1];
+  elReadoutT.textContent = dotT.toFixed(0) + ' °C';
+  elStageTitle.textContent = state.stageTitle;
+  elStageDesc.textContent = state.stageDesc;
+  // Lever bar
+  elLeverBar.innerHTML = '';
+  for (const p of state.phases) {
+    const sp = document.createElement('span');
+    sp.className = p.seg;
+    sp.style.width = (p.frac * 100).toFixed(1) + '%';
+    elLeverBar.appendChild(sp);
+  }
+  // Endpoints + fractions
+  elLeverEnd.innerHTML = '';
+  if (state.tieLine) {
+    elLeverHead.textContent = `Lever rule at T = ${state.tieLine.T.toFixed(0)} °C`;
+    for (let i = 0; i < state.phases.length; i++) {
+      const p = state.phases[i];
+      const tie = state.tieLine.ends.find(e => e.name === p.name || e.name === p.name.replace('₃','3')) || state.tieLine.ends[i] || null;
+      const row = document.createElement('div');
+      row.className = 'endp';
+      const ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = p.name;
+      const comp = document.createElement('div'); comp.className = 'comp';
+      if (tie) {
+        comp.textContent = `c = ${formatComp(tie.c)}`;
+      } else {
+        comp.textContent = '';
+      }
+      const frac = document.createElement('div'); frac.className = 'frac';
+      frac.textContent = (p.frac * 100).toFixed(1) + ' %';
+      row.appendChild(ph); row.appendChild(comp); row.appendChild(frac);
+      elLeverEnd.appendChild(row);
+    }
+  } else {
+    elLeverHead.textContent = 'Single phase — no tie line';
+    for (const p of state.phases) {
+      const row = document.createElement('div');
+      row.className = 'endp';
+      const ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = p.name;
+      const comp = document.createElement('div'); comp.className = 'comp'; comp.textContent = `c = ${formatComp(dotC)}`;
+      const frac = document.createElement('div'); frac.className = 'frac'; frac.textContent = (p.frac*100).toFixed(0) + ' %';
+      row.appendChild(ph); row.appendChild(comp); row.appendChild(frac);
+      elLeverEnd.appendChild(row);
+    }
+  }
+  // Phase fractions panel (right card, below stage banner)
+  elPfList.innerHTML = '';
+  if (state.phases && state.phases.length > 0) {
+    elPhaseFrac.style.display = '';
+    for (const p of state.phases) {
+      const row = document.createElement('div');
+      row.className = 'pf-row';
+      const key = p.name.replace('₃','3');
+      const color = PHASE_HEX[key] || PHASE_HEX[p.name] || '#eee';
+      const sw = document.createElement('div'); sw.className = 'sw';
+      sw.style.background = color;
+      const ph = document.createElement('div'); ph.className = 'ph'; ph.textContent = p.name;
+      const frac = document.createElement('div'); frac.className = 'frac';
+      frac.textContent = (p.frac * 100).toFixed(1) + ' %';
+      row.appendChild(sw); row.appendChild(ph); row.appendChild(frac);
+      elPfList.appendChild(row);
+    }
+  } else {
+    elPhaseFrac.style.display = 'none';
+  }
+  // Reaction equation
+  if (state.reactionEqn) {
+    elReactEqn.style.display = 'block';
+    elReactEqn.innerHTML = state.reactionEqn;
+  } else {
+    elReactEqn.style.display = 'none';
+    elReactEqn.innerHTML = '';
+  }
+  // Legend active phases
+  document.querySelectorAll('.leg-chip').forEach(chip => {
+    const name = chip.dataset.phase;
+    if (state.activePhases.includes(name)) chip.classList.add('active');
+    else chip.classList.remove('active');
+  });
+}
+
+function prettyPhase(name) {
+  return name
+    .replace('Fe3C', 'Fe₃C')
+    .replace('Ti2Ni', 'Ti₂Ni');
+}
+function buildLegend() {
+  elLegend.innerHTML = '';
+  for (const ph of currentSystem.phaseLegend) {
+    const chip = document.createElement('div');
+    chip.className = 'leg-chip';
+    chip.dataset.phase = ph;
+    const sw = document.createElement('span');
+    sw.className = 'sw';
+    sw.style.background = PHASE_HEX[ph];
+    chip.appendChild(sw);
+    const lbl = document.createElement('span');
+    lbl.textContent = prettyPhase(ph);
+    chip.appendChild(lbl);
+    elLegend.appendChild(chip);
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   KEY FEATURES (per system)
+   ──────────────────────────────────────────────────────────────────── */
+const KEY_FEATURES = {
+  cuni: [
+    { title:'Lens-shaped two-phase field', body:'The L+α band is a single continuous "lens" because Cu and Ni are completely miscible in both liquid and FCC solid states. No invariant reaction.' },
+    { title:'Tie line ⇒ compositions', body:'A horizontal at temperature T meets the liquidus at <span class="num">c<sub>L</sub></span> and the solidus at <span class="num">c<sub>α</sub></span>. Those are the equilibrium compositions of the coexisting phases.' },
+    { title:'Lever rule ⇒ amounts', body:'<span class="num">W<sub>L</sub> = (c<sub>α</sub> − c) / (c<sub>α</sub> − c<sub>L</sub>)</span> and <span class="num">W<sub>α</sub> = 1 − W<sub>L</sub></span>.' },
+    { title:'Why "isomorphous"?', body:'Two species with similar size, crystal structure, valence, and electronegativity (Hume-Rothery rules) — they form a single solid solution at all compositions.' },
+  ],
+  cuag: [
+    { title:'Eutectic point E', body:'<span class="num">L (71.9% Ag, 779°C) → α (8.0% Ag) + β (91.2% Ag)</span>. One liquid splits into two solids at a single T.' },
+    { title:'Three two-phase fields', body:'α+L (left of E), β+L (right of E), and α+β below the eutectic isotherm.' },
+    { title:'Solvus curves', body:'α and β solubility shrinks on cooling: secondary precipitates form below the solvus.' },
+    { title:'Microstructure at eutectic comp', body:'Pure lamellar α+β colonies — no pro-eutectic phase. Off-eutectic alloys show pro-eutectic grains plus eutectic colonies.' },
+  ],
+  niti: [
+    { title:'The classic eutectoid: steel', body:'<span class="num">γ (0.76 % C, 727 °C) → α (0.022 % C) + Fe₃C (6.7 % C)</span>. A single solid (austenite) decomposes isothermally into two new solids.' },
+    { title:'Pearlite', body:'The α + Fe₃C product is a fine lamellar colony of ferrite plates separated by cementite plates — the iconic <b>pearlite</b> microstructure of slowly-cooled carbon steel.' },
+    { title:'Hypo vs hyper-eutectoid', body:'Below 0.76 %C: pro-eutectoid α nucleates first on γ grain boundaries, then pearlite. Above 0.76 %C: pro-eutectoid Fe₃C forms a network, then pearlite inside.' },
+    { title:'Why this matters', body:'Carbon content alone — set by where you sit on this diagram — controls hardness, ductility, and weldability of plain-carbon steel. 0.76 %C is the strongest fully-pearlitic composition.' },
+  ],
+};
+function buildKeyFeatures() {
+  const el = document.getElementById('key-features');
+  el.innerHTML = '';
+  const feats = KEY_FEATURES[currentSystem.key] || [];
+  for (const f of feats) {
+    const div = document.createElement('div');
+    div.className = 'feat';
+    div.innerHTML = `<h4>${f.title}</h4><p>${f.body}</p>`;
+    el.appendChild(div);
+  }
+}
+
+/* Presets removed — diagram is fully drag-driven now */
+
+/* ════════════════════════════════════════════════════════════════════
+   TAB SWITCHING
+   ──────────────────────────────────────────────────────────────────── */
+const SYSTEMS = { cuni: SYS_CUNI, cuag: SYS_CUAG, niti: SYS_NITI };
+
+const elZoomBtn = document.getElementById('zoom-toggle');
+function syncZoomBtn() {
+  if (!currentSystem.zoomBounds) {
+    elZoomBtn.style.display = 'none';
+    return;
+  }
+  elZoomBtn.style.display = '';
+  elZoomBtn.classList.toggle('active', zoomActive);
+  elZoomBtn.textContent = zoomActive ? 'Show full diagram' : 'Zoom: α region';
+}
+elZoomBtn.addEventListener('click', () => {
+  if (!currentSystem.zoomBounds) return;
+  zoomActive = !zoomActive;
+  if (zoomActive && currentSystem.zoomDefault) {
+    dotC = currentSystem.zoomDefault.c;
+    dotT = currentSystem.zoomDefault.T;
+  } else {
+    const b = getBounds();
+    dotC = Math.max(b.xMin, Math.min(b.xMax, dotC));
+    dotT = Math.max(b.yMin, Math.min(b.yMax, dotT));
+  }
+  syncZoomBtn();
+  renderAll();
+});
+
+document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    currentSystem = SYSTEMS[tab.dataset.tab];
+    zoomActive = false;
+    dotC = currentSystem.default.c;
+    dotT = currentSystem.default.T;
+    syncZoomBtn();
+    buildLegend();
+    buildKeyFeatures();
+    renderAll();
+  });
+});
+
+/* ════════════════════════════════════════════════════════════════════
+   MASTER RENDER
+   ──────────────────────────────────────────────────────────────────── */
+function renderAll() {
+  const state = drawDiagram();
+  renderMicro(state);
+  updateState(state);
+}
+
+/* ─── Init ─── */
+buildLegend();
+buildKeyFeatures();
+syncZoomBtn();
+resizeDia();   // also calls renderAll via ResizeObserver
+resizeMicro(); // builds grain map & renders
+renderAll();
+</script>
+
+</body>
+</html>
