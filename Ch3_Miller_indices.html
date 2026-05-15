@@ -37,6 +37,12 @@
   .back-btn:hover { background: #e4e4e4; color: #1a1a1a; }
   .back-btn svg { display: block; }
 
+  /* Chapter eyebrow */
+  .eyebrow {
+    font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
+    text-transform: uppercase; color: #888; margin-bottom: 6px;
+  }
+
   .tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
   .tab {
     border: 1px solid #ccc; background: #fff; padding: 8px 18px; border-radius: 6px;
@@ -193,6 +199,7 @@
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4L6 8l4 4"/></svg>
     Materials Science 101
   </a>
+  <div class="eyebrow">Chapter 3</div>
   <h1>Miller Indices</h1>
   <div class="subtitle">
     Drag coloured spheres to define a direction or plane; or enter indices and step through all translations / parallel planes within the unit cell.
@@ -233,7 +240,7 @@
     <div class="card">
       <h3>Controls</h3>
       <div class="sub-tabs">
-        <button class="sub-tab active" id="stab-drag" onclick="setSubMode('drag')">🖱 Drag</button>
+        <button class="sub-tab active" id="stab-drag" onclick="setSubMode('drag')">🖥 Drag</button>
         <button class="sub-tab"        id="stab-inp"  onclick="setSubMode('input')">✏ Input</button>
       </div>
 
@@ -340,11 +347,13 @@ let yaw   =  0.55;
 let pitch =  0.45;
 let zoomF =  1.0;
 
+// Each view holds [primary, flipped]; clicking an active button toggles.
 const VIEW_PRESETS = {
-  front: { yaw: 0,     pitch: 0 },
-  top:   { yaw: 0,     pitch: Math.PI/2 },
-  iso:   { yaw: 0.55,  pitch: 0.45 }
+  front: [{ yaw: 0,    pitch: 0          }, { yaw: Math.PI,        pitch: 0           }],
+  top:   [{ yaw: 0,    pitch: Math.PI/2  }, { yaw: 0,              pitch: -Math.PI/2 + 0.02 }],
+  iso:   [{ yaw: 0.55, pitch: 0.45       }, { yaw: 0.55 + Math.PI, pitch: 0.45        }]
 };
+const VIEW_TOGGLE_MI = { front:0, top:0, iso:0 };
 
 function resetView() {
   yaw =  0.55; pitch = 0.45; zoomF = 1.0;
@@ -1139,10 +1148,16 @@ cv.addEventListener('wheel', e=>{
   redraw();
 },{passive:false});
 
-// View preset buttons
+// View preset buttons — clicking an already-active button toggles to the
+// opposite view (back / bottom / opposite-iso).
 document.querySelectorAll('.view-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
-    const v=VIEW_PRESETS[btn.dataset.view];
+    const key = btn.dataset.view;
+    if(!VIEW_PRESETS[key]) return;
+    const wasActive = btn.classList.contains('active');
+    if(wasActive) VIEW_TOGGLE_MI[key] = 1 - VIEW_TOGGLE_MI[key];
+    else          VIEW_TOGGLE_MI[key] = 0;
+    const v = VIEW_PRESETS[key][VIEW_TOGGLE_MI[key]];
     yaw=v.yaw; pitch=v.pitch;
     document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
