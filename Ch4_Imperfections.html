@@ -37,9 +37,9 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
   border: 1px solid #ddd; border-radius: 8px;
   position: relative; overflow: hidden;
 }
-.cvwrap canvas#disC { display: block; width: 100%; height: 100%; cursor: grab; }
+.cvwrap canvas#disC { display: block; width: 100%; height: 100%; cursor: grab; touch-action: none; }
 .cvwrap canvas#disC:active { cursor: grabbing; }
-.cvhint { position: absolute; bottom: 6px; left: 8px; font-size: 11px; color: #aaa; pointer-events: none; }
+.cvhint { position: absolute; bottom: 6px; left: 70px; font-size: 11px; color: #aaa; pointer-events: none; }
 
 /* animation controls (under viewer) */
 .anim-ctrl {
@@ -58,6 +58,8 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 }
 .anim-btn:hover { background: #f5f5f5; }
 .anim-btn.playing { background: #ffe9c8; border-color: #e0a050; color: #6a4a10; }
+.anim-btn.circuit { background: #eaf3ff; border-color: #b9d0f0; color: #1c3a8a; }
+.anim-btn.circuit.active { background: #1c3a8a; border-color: #1c3a8a; color: #fff; }
 .anim-slider { flex: 1; min-width: 120px; accent-color: #c87033; cursor: pointer; }
 .anim-lbl { font-size: 12px; color: #666; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
 
@@ -71,7 +73,6 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 .tab:hover { background: #f0f0f0; }
 .tab.edge.active  { background: #FFBFBF; border-color: #e07070; color: #802020; font-weight: 700; }
 .tab.screw.active { background: #CCD9FF; border-color: #5a7ce8; color: #1c3a8a; font-weight: 700; }
-.tab.mix.active   { background: #BFF2BF; border-color: #4aaa4a; color: #1a5c1a; font-weight: 700; }
 
 /* sections */
 .section { display: none; }
@@ -80,14 +81,16 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 /* legend tokens */
 .lg-row { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: #444; margin: 4px 0; }
 .lg-sw  { width: 22px; height: 4px; border-radius: 2px; display: inline-block; flex-shrink: 0; }
-.lg-sw.line   { background: #dd2222; height: 4px; }
-.lg-sw.burg   { background: #1697c4; height: 5px; }
-.lg-sw.circuit{ background: linear-gradient(to right, #888 50%, transparent 50%) repeat-x; background-size: 5px 2px; height: 2px; }
-.lg-sw.atom-t { background: #ffaaaa; border-radius: 50%; width: 12px; height: 12px; border: 1.2px solid #c95555; }
-.lg-sw.atom-b { background: #aaccff; border-radius: 50%; width: 12px; height: 12px; border: 1.2px solid #5577cc; }
-.lg-sw.plane  { background: rgba(255,200,90,0.4); height: 10px; border: 1px solid rgba(190,140,30,0.5); }
+.lg-sw.line    { background: #dd2222; height: 4px; }
+.lg-sw.burg    { background: #1697c4; height: 5px; }
+.lg-sw.circuit { background: linear-gradient(to right, #444 50%, transparent 50%) repeat-x; background-size: 6px 2px; height: 2px; }
+.lg-sw.close   { background: #22aa22; height: 5px; }
+.lg-sw.plane   { background: rgba(240,200,80,0.45); height: 10px; border: 1px solid rgba(190,140,30,0.55); }
+.lg-sw.boxlow  { background: #b8c8d8; border-radius: 2px; width: 14px; height: 14px; border: 1px solid #5e6f80; }
+.lg-sw.boxup   { background: #d8c0b8; border-radius: 2px; width: 14px; height: 14px; border: 1px solid #806858; }
+.lg-sw.boxext  { background: #f0c890; border-radius: 2px; width: 14px; height: 14px; border: 1px solid #a07840; }
 
-/* toggle row inside controls card */
+/* toggle row */
 .toggles { display: flex; flex-direction: column; gap: 6px; }
 .tog-row {
   display: flex; align-items: center; justify-content: space-between;
@@ -108,9 +111,9 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 }
 .tog-row.on .switch::after { left: 14px; }
 .tog-lbl { display: flex; align-items: center; gap: 8px; }
-.tog-lbl .ic { width: 16px; height: 4px; border-radius: 2px; }
+.tog-lbl .ic { width: 14px; height: 14px; border-radius: 3px; border: 1px solid rgba(0,0,0,0.15); }
 
-/* view buttons (square icon style, matches Ch2) */
+/* view buttons */
 .view-btns { position: absolute; bottom: 6px; right: 8px; display: flex; gap: 5px; z-index: 10; }
 .view-btn {
   width: 32px; height: 32px; padding: 0;
@@ -123,7 +126,7 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 .view-btn:hover { background: #fff; color: #111; box-shadow: 0 2px 6px rgba(0,0,0,0.14); }
 .view-btn.vact  { background: #efefef; border-color: #bbb; color: #111; }
 
-/* axis HUD (bottom-left) */
+/* axis HUD */
 #axisHUD {
   position: absolute; bottom: 8px; left: 8px;
   width: 56px; height: 56px; pointer-events: none; z-index: 10;
@@ -147,11 +150,17 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 .back-btn:hover { background: #e4e4e4; color: #1a1a1a; }
 .back-btn svg { display: block; }
 
+/* Chapter eyebrow */
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 1.6px;
+  text-transform: uppercase; color: #888; margin-bottom: 6px;
+}
+
 /* burger relationship banner */
 .rel-banner {
   display: flex; gap: 10px; align-items: flex-start;
   padding: 10px 12px; border-radius: 6px;
-  background: #fff8e7; border: 1px solid #f0d890;
+  background: #fff8e7; border: 1px solid #f0d890; margin-top: 12px;
 }
 .rel-banner .ic { font-size: 18px; line-height: 1.1; }
 .rel-banner .tx { font-size: 13px; color: #5a4500; line-height: 1.5; }
@@ -165,8 +174,9 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4L6 8l4 4"/></svg>
   Materials Science 101
 </a>
+<div class="eyebrow">Chapter 4</div>
 <h1>Imperfections in Solids</h1>
-<p class="subtitle">Ch4 · Dislocations · Edge &amp; Screw · Burgers Vector</p>
+<p class="subtitle">Dislocations · Edge &amp; Screw · Burgers Vector</p>
 
 <div class="tabs">
   <button class="tab edge active" onclick="showSec('edge',this)">⟂ Edge Dislocation</button>
@@ -174,23 +184,23 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 </div>
 
 <div class="two-col">
-  <!-- LEFT: 3D viewer (shared across tabs) -->
+  <!-- LEFT: 3D viewer -->
   <div>
     <div class="cvwrap" id="disWrap" style="height:520px">
       <canvas id="disC"></canvas>
       <canvas id="axisHUD"></canvas>
       <span class="cvhint">Drag to rotate · scroll to zoom</span>
       <div class="view-btns">
-        <button class="view-btn" onclick="setView('front',this)" title="Front (look down z)">
+        <button class="view-btn" onclick="setView('front',this)" title="Front view">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="11" height="11" rx="1.5"/></svg>
         </button>
-        <button class="view-btn" onclick="setView('side',this)" title="Side (look down x)">
+        <button class="view-btn" onclick="setView('side',this)" title="Side view">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="9" height="9" rx="1" transform="rotate(45 7.5 7.5)"/></svg>
         </button>
-        <button class="view-btn" onclick="setView('top',this)" title="Top (look down y)">
+        <button class="view-btn" onclick="setView('top',this)" title="Top view">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7.5" cy="7.5" r="5.5"/><circle cx="7.5" cy="7.5" r="2" fill="currentColor" stroke="none"/></svg>
         </button>
-        <button class="view-btn vact" onclick="setView('iso',this)" title="3D Isometric">
+        <button class="view-btn vact" onclick="setView('iso',this)" title="3D isometric">
           <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" stroke-linejoin="round"><polygon points="7.5,1.5 13.5,4.8 13.5,10.2 7.5,13.5 1.5,10.2 1.5,4.8" stroke-width="1.4"/><line x1="7.5" y1="1.5" x2="7.5" y2="7.5" stroke-width="1"/><line x1="1.5" y1="4.8" x2="7.5" y2="7.5" stroke-width="1"/><line x1="13.5" y1="4.8" x2="7.5" y2="7.5" stroke-width="1"/></svg>
         </button>
       </div>
@@ -205,7 +215,23 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
       <span class="anim-lbl" id="tLabel">Perfect</span>
     </div>
 
-    <!-- Visibility toggles below viewer -->
+    <!-- Burgers circuit row (slider + play, matches formation row) -->
+    <div class="anim-ctrl" style="margin-top:8px">
+      <button class="anim-btn circuit" id="circuitPlayBtn" onclick="circuitToggle()">▶ Trace b</button>
+      <button class="anim-btn" onclick="setCircuit(0)">↺</button>
+      <button class="anim-btn" onclick="setCircuit(1)">⏭</button>
+      <input class="anim-slider" id="circuitSlider" type="range" min="0" max="1" step="0.005" value="0" oninput="setCircuit(+this.value)">
+      <span class="anim-lbl" id="circuitLbl">0%</span>
+    </div>
+
+    <!-- Block opacity slider -->
+    <div class="anim-ctrl" style="margin-top:8px">
+      <span style="font-size:12px; color:#666; min-width:64px">Block opacity</span>
+      <input class="anim-slider" id="opacitySlider" type="range" min="0.1" max="1" step="0.02" value="1" oninput="setOpacity(+this.value)">
+      <span class="anim-lbl" id="opacityLbl">100%</span>
+    </div>
+
+    <!-- Visibility toggles -->
     <div class="card" style="margin-top:12px">
       <h3>Show / Hide</h3>
       <div class="toggles" id="togs"></div>
@@ -218,33 +244,35 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
     <div class="section active" id="sec-edge">
       <div class="card">
         <h3>Edge Dislocation — ⟂</h3>
-        <p class="note">An <span class="hl">extra half-plane</span> of atoms is inserted into the lattice. Atoms above the slip plane are in compression; atoms below are in tension. The dislocation symbol <strong>⟂</strong> shows the orientation of the extra half-plane.</p>
+        <p class="note">An <span class="hl">extra half-plane</span> is wedged into the crystal from above. The dislocation line is the bottom edge of that half-plane, where it terminates inside the lattice. Cells above the slip plane are in compression; cells below are in tension. Press <strong>Play</strong> to watch the half-plane descend and the surrounding lattice squeeze to accommodate it.</p>
         <div class="fact-grid">
-          <div class="fact-box"><div class="fact-lbl">Dislocation line</div><div class="fact-val">along <em>z</em></div></div>
+          <div class="fact-box"><div class="fact-lbl">Dislocation line</div><div class="fact-val">along <em>y</em></div></div>
           <div class="fact-box"><div class="fact-lbl">Burgers vector <em>b</em></div><div class="fact-val">along <em>x</em></div></div>
           <div class="fact-box"><div class="fact-lbl">Relationship</div><div class="fact-val"><em>b</em> ⟂ line</div></div>
-          <div class="fact-box"><div class="fact-lbl">Slip plane</div><div class="fact-val">contains both</div></div>
+          <div class="fact-box"><div class="fact-lbl">Slip plane</div><div class="fact-val">xy plane (z = 0)</div></div>
         </div>
       </div>
 
       <div class="card">
-        <h3>Burgers Circuit</h3>
-        <p class="note">Walk an <span class="hl">equal number of lattice steps</span> right, up, left, down around the dislocation core. In a perfect crystal the loop closes; here it fails to close by exactly one lattice spacing — that closure failure is the Burgers vector <em>b</em>.</p>
-        <div class="eq">| b | = a  (one lattice spacing, in the slip direction)</div>
+        <h3>Burgers Circuit (Circuit Method)</h3>
+        <p class="note">Walk an <span class="hl">equal number of lattice steps</span> right, up, left, down around the dislocation core. In a perfect crystal the loop closes; around a dislocation it does not. The <strong>closure failure</strong> — the vector from end-point back to start — is the Burgers vector <em>b</em>.</p>
+        <div class="eq">| b | = a · ⟨uvw⟩  (one lattice spacing along the slip direction)</div>
+        <p class="note">Use the <strong>Trace Burgers Circuit</strong> button above to walk the circuit step-by-step on the formed crystal.</p>
       </div>
 
       <div class="rel-banner">
         <span class="ic">⟂</span>
-        <span class="tx"><strong>Key feature:</strong> the Burgers vector is <strong>perpendicular</strong> to the dislocation line. Slip moves the extra half-plane sideways one atomic distance at a time.</span>
+        <span class="tx"><strong>Key feature:</strong> the Burgers vector is <strong>perpendicular</strong> to the dislocation line. Slip propagates the extra half-plane sideways one atomic spacing at a time.</span>
       </div>
 
       <div class="card" style="margin-top:12px">
         <h3>Legend</h3>
-        <div class="lg-row"><span class="lg-sw line"></span> Dislocation line (along z)</div>
+        <div class="lg-row"><span class="lg-sw line"></span> Dislocation line</div>
         <div class="lg-row"><span class="lg-sw burg"></span> Burgers vector <em>b</em></div>
-        <div class="lg-row"><span class="lg-sw circuit"></span> Burgers circuit (open by <em>b</em>)</div>
+        <div class="lg-row"><span class="lg-sw circuit"></span> Burgers circuit path</div>
+        <div class="lg-row"><span class="lg-sw close"></span> Closure failure (= <em>b</em>)</div>
         <div class="lg-row"><span class="lg-sw plane"></span> Slip plane</div>
-        <div class="lg-row"><span class="lg-sw atom-t"></span> Upper half (compression) &nbsp;<span class="lg-sw atom-b" style="margin-left:6px"></span> Lower half (tension)</div>
+        <div class="lg-row"><span class="lg-sw boxext"></span> Extra half-plane &nbsp;<span class="lg-sw boxup" style="margin-left:6px"></span> Above slip (compression) &nbsp;<span class="lg-sw boxlow" style="margin-left:6px"></span> Below slip (tension)</div>
       </div>
     </div>
 
@@ -252,7 +280,7 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
     <div class="section" id="sec-screw">
       <div class="card">
         <h3>Screw Dislocation — ⟳</h3>
-        <p class="note">Imagine cutting the crystal along a half-plane and sliding one face <span class="hl">parallel</span> to the cut. Atomic planes spiral around the dislocation line like a spiral staircase — every full circuit around the line steps up by one Burgers vector.</p>
+        <p class="note">Cut the crystal along a half-plane and slide one face <span class="hl">parallel</span> to the cut by one lattice spacing. Atomic planes that were originally flat now spiral around the dislocation line like a spiral staircase — each full circuit around the line steps up by one Burgers vector. Press <strong>Play</strong> to watch the shear develop.</p>
         <div class="fact-grid">
           <div class="fact-box"><div class="fact-lbl">Dislocation line</div><div class="fact-val">along <em>z</em></div></div>
           <div class="fact-box"><div class="fact-lbl">Burgers vector <em>b</em></div><div class="fact-val">along <em>z</em></div></div>
@@ -263,29 +291,1045 @@ p.note { font-size: 13.5px; color: #444; line-height: 1.65; margin: 5px 0; }
 
       <div class="card">
         <h3>Helical Displacement</h3>
-        <p class="note">In linear elasticity, the displacement field along the dislocation line is a smooth helix:</p>
-        <div class="eq">u<sub>z</sub>(x,y) = (b / 2π) · arctan(y/x)</div>
-        <p class="note">Each atomic plane that was originally flat becomes a single turn of the helix. The dislocation line is the central axis of the screw.</p>
+        <p class="note">Each lattice cell is displaced along the dislocation line by an amount proportional to its angular position around the core:</p>
+        <div class="eq">u<sub>z</sub>(x,y) = (b / 2π) · θ,  &nbsp; θ ∈ [0, 2π)</div>
+        <p class="note">Crossing the cut plane (y = 0, x &gt; 0) the displacement jumps by <em>b</em> — that jump is the slip.</p>
+      </div>
+
+      <div class="card">
+        <h3>Burgers Circuit (Circuit Method)</h3>
+        <p class="note">For screw, walk a closed loop around the dislocation line. The path lifts smoothly along <em>z</em> as it goes — when it returns to the starting <em>x</em>,<em>y</em>, it sits one <em>b</em> higher (or lower) than it started. That offset along the line direction is the Burgers vector.</p>
+        <p class="note">Use the <strong>Trace Burgers Circuit</strong> button above to watch the helical path close on itself with a vertical offset.</p>
       </div>
 
       <div class="rel-banner screw">
         <span class="ic">⟳</span>
-        <span class="tx"><strong>Key feature:</strong> the Burgers vector is <strong>parallel</strong> to the dislocation line. There is no "extra plane" — atoms remain on the original lattice planes, but those planes spiral.</span>
+        <span class="tx"><strong>Key feature:</strong> the Burgers vector is <strong>parallel</strong> to the dislocation line. No extra half-plane exists — the cells remain on their original lattice sites but are sheared into a spiral.</span>
       </div>
 
       <div class="card" style="margin-top:12px">
         <h3>Legend</h3>
         <div class="lg-row"><span class="lg-sw line"></span> Dislocation line (screw axis)</div>
-        <div class="lg-row"><span class="lg-sw burg"></span> Burgers vector <em>b</em> (along the line)</div>
-        <div class="lg-row"><span class="lg-sw circuit"></span> Helical path / Burgers circuit</div>
-        <div class="lg-row"><span class="lg-sw plane"></span> Shear (cut) plane</div>
-        <div class="lg-row"><span class="lg-sw atom-t"></span> Sheared above &nbsp;<span class="lg-sw atom-b" style="margin-left:6px"></span> Reference below</div>
+        <div class="lg-row"><span class="lg-sw burg"></span> Burgers vector <em>b</em></div>
+        <div class="lg-row"><span class="lg-sw circuit"></span> Helical Burgers circuit</div>
+        <div class="lg-row"><span class="lg-sw close"></span> Closure failure (= <em>b</em>)</div>
+        <div class="lg-row"><span class="lg-sw plane"></span> Cut / shear plane</div>
+        <div class="lg-row"><span class="lg-sw boxlow"></span> Lattice cells (uniform)</div>
       </div>
     </div>
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script src="ch4_dislocations.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ====================================================
+  // State
+  // ====================================================
+  let mode = 'edge';
+  let tForm = 0;
+  let tCircuit = 0;
+  let playing = false;
+  let circuitAnim = false;
+  let circuitDone = false;
+  let yaw = 0.55, pitch = 0.45, zoomF = 1.0;
+  let lastFrame = 0;
+
+  const togs = {
+    line: true,
+    burger: true
+  };
+  let boxOpacity = 1.0;  // user-controlled box transparency (0..1)
+
+  // Phase boundaries for edge formation (slider tForm ∈ [0,1])
+  //   A 0.00 → 0.40  half-plane insertion (descent + column squeeze)
+  //   C 0.40 → 1.00  dislocation line sweeps front → back, ⊥ at start
+  const PH = { A: 0.40, C: 1.00 };
+
+  function phaseAT(t) { return clamp(t / PH.A, 0, 1); }
+  // Squeeze (upper cols spreading to make room) completes in the first half
+  // of phase A, with ease-out so the move starts fast. This way the original
+  // structure has already separated by the time the descending extra column
+  // enters the upper region.
+  function phaseSqueeze(t) {
+    const p = clamp(t / (PH.A * 0.5), 0, 1);   // linear 0→1 over t ∈ [0, 0.20]
+    return p * (2 - p);                        // ease-out
+  }
+  function getEdgeBoxAlpha() { return boxOpacity; }
+
+  // Smoothly drive boxOpacity (and the slider DOM) from 100% down to 65%
+  // over the last 20% of phase A — i.e. as the half-plane finishes settling
+  // and just before the dislocation line begins to sweep. Because tForm
+  // advances smoothly during playback, the slider visibly slides instead
+  // of jumping. The user can drag the slider freely after the fade
+  // completes (or before it begins); scrubbing tForm back through the
+  // window will likewise glide the slider back.
+  function checkAutoOpacity() {
+    const fadeStart = PH.A * 0.8;
+    const fadeEnd = PH.A;
+    let target;
+    if (tForm <= fadeStart)      target = 1.0;
+    else if (tForm >= fadeEnd)   target = 0.65;
+    else {
+      const p = (tForm - fadeStart) / (fadeEnd - fadeStart);
+      target = lerp(1.0, 0.65, p);
+    }
+    setOpacityValueAndSlider(target);
+  }
+  function setOpacityValueAndSlider(v) {
+    boxOpacity = clamp(v, 0.05, 1);
+    const sl = document.getElementById('opacitySlider');
+    if (sl) sl.value = boxOpacity;
+    const lbl = document.getElementById('opacityLbl');
+    if (lbl) lbl.textContent = Math.round(boxOpacity * 100) + '%';
+  }
+  function getLineSweep(t) {
+    if (mode !== 'edge') return 1.0;
+    if (t < PH.A) return 0;
+    if (t > PH.C) return 1;
+    return (t - PH.A) / (PH.C - PH.A);
+  }
+
+  // ====================================================
+  // Canvas refs
+  // ====================================================
+  const cv = document.getElementById('disC');
+  const ctx = cv.getContext('2d');
+  const hud = document.getElementById('axisHUD');
+  const hudCtx = hud.getContext('2d');
+  let W = 600, H = 520, DPR = 1;
+
+  function resize() {
+    DPR = window.devicePixelRatio || 1;
+    const rect = cv.getBoundingClientRect();
+    W = Math.round(rect.width) || 600;
+    H = Math.round(rect.height) || 0;
+    if (H < 20) H = Math.round(W / 1.1);
+    cv.width = Math.round(W * DPR);
+    cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    redraw();
+  }
+
+  // ====================================================
+  // Math helpers
+  // ====================================================
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+  function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+  function sub(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+  function add(a, b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+  function scl(a, k) { return [a[0]*k, a[1]*k, a[2]*k]; }
+  function len(v) { return Math.sqrt(dot(v, v)); }
+  function nrm(v) { const m = len(v); return m > 0 ? scl(v, 1/m) : v; }
+
+  function rotY(p, a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [c*p[0] + s*p[2], p[1], -s*p[0] + c*p[2]];
+  }
+  function rotX(p, a) {
+    const c = Math.cos(a), s = Math.sin(a);
+    return [p[0], c*p[1] - s*p[2], s*p[1] + c*p[2]];
+  }
+  // NegXSwapYZ: world [x,y,z] → camera [-x, z, y]
+  function negXSwapYZ(p) { return [-p[0], p[2], p[1]]; }
+
+  function xform(p) {
+    let q = negXSwapYZ(p);
+    q = rotY(q, yaw);
+    q = rotX(q, pitch);
+    return q;
+  }
+  function scaleF() { return Math.min(W, H) * 0.085 * zoomF; }
+  function proj(p) {
+    const q = xform(p);
+    const s = scaleF();
+    return [W/2 + q[0]*s, H/2 - q[1]*s, q[2]];
+  }
+  function projDir(d) {
+    // direction vector: rotation only, no translation
+    let q = negXSwapYZ(d);
+    q = rotY(q, yaw);
+    q = rotX(q, pitch);
+    const s = scaleF();
+    return [q[0]*s, -q[1]*s, q[2]];
+  }
+
+  // ====================================================
+  // Hex color → shading
+  // ====================================================
+  function hex2rgb(hex) {
+    const v = hex.replace('#', '');
+    return [
+      parseInt(v.substring(0, 2), 16),
+      parseInt(v.substring(2, 4), 16),
+      parseInt(v.substring(4, 6), 16)
+    ];
+  }
+  function shade(hex, k) {
+    const [r, g, b] = hex2rgb(hex);
+    return `rgb(${Math.round(clamp(r*k,0,255))},${Math.round(clamp(g*k,0,255))},${Math.round(clamp(b*k,0,255))})`;
+  }
+
+  // ====================================================
+  // Box geometry (one cube)
+  // ====================================================
+  // Box half-side. With spacing 1 in BOTH the lower and upper regions
+  // (the upper is WIDER by one unit cell, not squeezed), 2·BH = 0.76 leaves
+  // a 0.24-wide gap between adjacent cells in either region — wide enough
+  // for the Burgers circuit to thread between cells.
+  const BH = 0.38;
+  const CUBE_V = [
+    [-1,-1,-1],[+1,-1,-1],[+1,+1,-1],[-1,+1,-1],
+    [-1,-1,+1],[+1,-1,+1],[+1,+1,+1],[-1,+1,+1]
+  ];
+  // Faces in CCW from outside, with outward normal
+  const CUBE_F = [
+    {v:[0,3,2,1], n:[0,0,-1]}, // bottom (z-)
+    {v:[4,5,6,7], n:[0,0,+1]}, // top    (z+)
+    {v:[0,1,5,4], n:[0,-1,0]}, // front  (y-)
+    {v:[3,7,6,2], n:[0,+1,0]}, // back   (y+)
+    {v:[0,4,7,3], n:[-1,0,0]}, // left   (x-)
+    {v:[1,2,6,5], n:[+1,0,0]}  // right  (x+)
+  ];
+
+  // Light direction in CAMERA coords (head-light biased slightly upward) so
+  // visible faces are always lit regardless of where the user has rotated to.
+  // Camera looks at -cam_z, so light "toward camera" has +cam_z component.
+  const LIGHT_CAM = nrm([0, 0.4, 0.9]);
+  function camNormal(nWorld) {
+    let n = negXSwapYZ(nWorld);
+    n = rotY(n, yaw);
+    n = rotX(n, pitch);
+    return n;
+  }
+
+  function addBox(out, cx, cy, cz, baseHex, strokeHex, alpha) {
+    const a1 = (typeof alpha === 'number') ? alpha : 1.0;
+    const verts3 = CUBE_V.map(([dx, dy, dz]) => [
+      cx + dx * BH, cy + dy * BH, cz + dz * BH
+    ]);
+    const projs = verts3.map(v => proj(v));
+    for (const f of CUBE_F) {
+      const poly = f.v.map(i => projs[i]);
+      const depth = (poly[0][2]+poly[1][2]+poly[2][2]+poly[3][2]) / 4;
+      const a = poly[0], b = poly[1], c = poly[2];
+      const cross = (b[0]-a[0])*(c[1]-a[1]) - (b[1]-a[1])*(c[0]-a[0]);
+      if (cross >= 0) continue;
+      const nCam = camNormal(f.n);
+      const intensity = clamp(dot(nCam, LIGHT_CAM) * 0.55 + 0.55, 0.25, 1.05);
+      out.push({
+        kind: 'face',
+        poly: poly.map(p => [p[0], p[1]]),
+        depth: depth,
+        fill: shade(baseHex, intensity),
+        stroke: strokeHex,
+        alpha: a1
+      });
+    }
+  }
+
+  // ====================================================
+  // Edge dislocation lattice
+  // ====================================================
+  // Convention:
+  // - Dislocation line along y (depth, into-screen in front view)
+  // - Burgers vector b along x (horizontal)
+  // - Slip plane: z = 0.5 (between lower k = 0 and upper k = 1)
+  // - Extra half-plane: above slip plane (z > 0.5), wedged at x ≈ 3/7
+
+  // 6 × 6 × 6 lattice before insertion. After insertion the upper half gains
+  // one column (7 cols at the SAME spacing 1 as the lower); the upper region
+  // is therefore physically WIDER than the lower by exactly 1 unit cell —
+  // which is what the magnitude of the Burgers vector reflects.
+  const EDGE = {
+    NX: 6,        // lower columns
+    NY: 6,        // depth y (along the dislocation line)
+    NZL: 3,       // rows below slip plane (z = -2, -1, 0)
+    NZU: 3,       // rows above slip plane (z =  1,  2, 3)
+    NX_EXTRA: 7,  // upper columns
+    SLIP_Z: 0.5,
+    EXTRA_I: 3    // upper column index of the inserted half-plane
+  };
+
+  // Position of upper column i at slider time t.
+  // Before insertion (t=0): the 6 original upper cols are aligned with the
+  // 6 lower cols (half-integer x ∈ {-2.5 … +2.5}). During phase A those
+  // cols SPREAD outward (left half shifts -0.5, right half shifts +0.5) to
+  // open a slot at x=0 for the descending extra column. Final positions
+  // are integer x ∈ {-3, -2, -1, 0, +1, +2, +3}. The total expansion is
+  // exactly 1 unit cell — that's the missing block in the Burgers circuit.
+  function edgeUpperX(i, t) {
+    if (i === EDGE.EXTRA_I) return 0;                  // extra column at x=0
+    const pT = phaseSqueeze(t);
+    const origI    = (i < EDGE.EXTRA_I) ? i : i - 1;   // map upper index → original (pre-insertion) index
+    const xOriginal = -2.5 + origI;                    // pre-insertion (aligned with lower)
+    const xFinal    = i - 3;                           // post-insertion (spread out)
+    return lerp(xOriginal, xFinal, pT);
+  }
+
+  function buildEdge(t) {
+    const out = [];
+    const yOff = -(EDGE.NY-1)/2;
+    const boxA = getEdgeBoxAlpha();
+    const pT = phaseAT(t);
+    // lower half: 6 cols × 6 depth × NZL rows, z = -2, -1, 0
+    for (let k = 0; k < EDGE.NZL; k++) {
+      const z = k - (EDGE.NZL - 1);
+      for (let i = 0; i < EDGE.NX; i++) {
+        const x = i - 2.5;
+        for (let j = 0; j < EDGE.NY; j++) {
+          addBox(out, x, yOff + j, z, '#b8c8d8', '#54637a', boxA);
+        }
+      }
+    }
+    // upper half: 7 cols × 6 depth × NZU rows, z = 1, 2, 3
+    for (let k = 0; k < EDGE.NZU; k++) {
+      const zBase = k + 1;
+      for (let i = 0; i < EDGE.NX_EXTRA; i++) {
+        const x = edgeUpperX(i, t);
+        let z = zBase;
+        const isExtra = (i === EDGE.EXTRA_I);
+        if (isExtra) {
+          z = zBase + (1 - pT) * 4.0;  // descends during phase A only
+        }
+        const fill   = isExtra ? '#f0c890' : '#d8c0b8';
+        const stroke = isExtra ? '#8a5a18' : '#7a5a48';
+        for (let j = 0; j < EDGE.NY; j++) {
+          addBox(out, x, yOff + j, z, fill, stroke, boxA);
+        }
+      }
+    }
+    return out;
+  }
+
+  // ====================================================
+  // Screw dislocation lattice
+  // ====================================================
+  // Convention:
+  // - Dislocation line along z (vertical)
+  // - Burgers vector b along z (parallel)
+  // - Cut plane: y = 0, x > 0 (half of xz plane)
+  // - Helical displacement u_z = (b/2π) θ, θ ∈ [0, 2π)
+
+  const SCREW = {
+    N: 2,   // half-extent in i, j, k
+  };
+
+  function screwAngle(x, y) {
+    // returns θ ∈ [0, 2π), discontinuous at +x axis approaching from y < 0
+    let a = Math.atan2(y, x);
+    if (a < 0) a += 2 * Math.PI;
+    return a;
+  }
+
+  function buildScrew(t) {
+    const out = [];
+    const N = SCREW.N;
+    for (let i = -N; i <= N; i++) {
+      for (let j = -N; j <= N; j++) {
+        // skip the dislocation core column entirely so we don't draw a box at the singularity
+        if (i === 0 && j === 0) continue;
+        const a = screwAngle(i, j);
+        const uz = t * a / (2 * Math.PI);  // 0 .. 1 (one b)
+        for (let k = -N; k <= N; k++) {
+          const z = k + uz;
+          addBox(out, i, j, z, '#bcc8d8', '#54637a');
+        }
+      }
+    }
+    return out;
+  }
+
+  // ====================================================
+  // Overlay primitives
+  // ====================================================
+  function drawLine3D(p0, p1, color, width, dash) {
+    const a = proj(p0), b = proj(p1);
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    if (dash) ctx.setLineDash(dash); else ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0], b[1]);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawArrow3D(p0, p1, color, width) {
+    const a = proj(p0), b = proj(p1);
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    const L = Math.hypot(dx, dy);
+    if (L < 1) return;
+    const ux = dx / L, uy = dy / L;
+    const head = Math.min(14, L * 0.32);
+    const hw = head * 0.55;
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = width;
+    ctx.lineCap = 'round';
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(a[0], a[1]);
+    ctx.lineTo(b[0] - ux * head * 0.6, b[1] - uy * head * 0.6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(b[0], b[1]);
+    ctx.lineTo(b[0] - ux*head - (-uy)*hw, b[1] - uy*head - ux*hw);
+    ctx.lineTo(b[0] - ux*head - (uy)*hw,  b[1] - uy*head - (-ux)*hw);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPolyFill3D(pts3, fill, stroke) {
+    ctx.save();
+    ctx.fillStyle = fill;
+    ctx.strokeStyle = stroke;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    const p0 = proj(pts3[0]);
+    ctx.moveTo(p0[0], p0[1]);
+    for (let i = 1; i < pts3.length; i++) {
+      const p = proj(pts3[i]);
+      ctx.lineTo(p[0], p[1]);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // ====================================================
+  // Edge: 4×4 Burgers circuit on the BOX-EDGE GRID
+  // ====================================================
+  // The circuit is a 4-hop-per-side square that ENCLOSES the dislocation
+  // core. The bottom edge sits one lattice spacing below the dislocation
+  // line (z = -0.5). Traversal is COUNTER-CLOCKWISE seen from the front
+  // face: start at bottom-RIGHT, then LEFT 4 (lower) → UP 4 (left side,
+  // snap at slip plane) → RIGHT 4 (upper, at the same spacing 1) → DOWN 4
+  // (right side, snap at slip plane, L-turn on the last hop).
+  //
+  // Because the upper lattice is WIDER than the lower by 1 unit cell, each
+  // slip-plane crossing carries a 0.5-unit horizontal shift in the SAME
+  // direction (-x). The two shifts sum to a 1-unit closure failure on the
+  // bottom row — that's the missing block, and the Burgers vector b points
+  // from the end of the circuit (at lower x = +1) back to the start
+  // (at lower x = +2), i.e. one full lattice spacing in +x.
+  function edgeCircuitSteps(t) {
+    const yHalf = (EDGE.NY - 1) / 2;
+    const yFront = -yHalf - BH - 0.05;
+
+    // Snap magnitude ramps with the same phase as the upper-col spread.
+    // At t < 0: 0 (perfect lattice, circuit closes). At t ≥ 0.2: 0.5
+    // (dislocation fully formed, the two crossings sum to 1-unit |b|).
+    const snapMag = 0.5 * phaseSqueeze(t);
+
+    const xL = -2;                       // bottom-left grid line, lower
+    const xR =  2;                       // bottom-right grid line, lower
+    const zBot = -0.5;
+    const zTop =  3.5;
+    const slipZ = EDGE.SLIP_Z;           // 0.5
+
+    const xL_up = xL - snapMag;          // left side, up-snap: -2 → -2.5
+    const xR_up = xL_up + 4;             // after 4 right hops at spacing 1
+    const xR_down = xR_up - snapMag;     // right side, down-snap: +1.5 → +1
+
+    const path = [];
+    path.push([xR,     yFront, zBot]);                     // P0  start (bottom-right)
+    // LEFT 4 in lower (integer grid).
+    path.push([xR - 1, yFront, zBot]);                     // P1  left 1
+    path.push([xR - 2, yFront, zBot]);                     // P2  left 2
+    path.push([xR - 3, yFront, zBot]);                     // P3  left 3
+    path.push([xL,     yFront, zBot]);                     // P4  left 4 (bottom-left)
+    // UP — first hop carries the slip-plane snap (lower → upper).
+    path.push([xL_up, yFront, slipZ]);                     // P5  up 1 (snap)
+    path.push([xL_up, yFront, 1.5]);                       // P6  up 2
+    path.push([xL_up, yFront, 2.5]);                       // P7  up 3
+    path.push([xL_up, yFront, zTop]);                      // P8  up 4 (top-left)
+    // RIGHT 4 in upper at spacing 1 (same as lower).
+    path.push([xL_up + 1, yFront, zTop]);                  // P9  right 1
+    path.push([xL_up + 2, yFront, zTop]);                  // P10 right 2
+    path.push([xL_up + 3, yFront, zTop]);                  // P11 right 3
+    path.push([xR_up,     yFront, zTop]);                  // P12 right 4 (top-right)
+    // DOWN — first three hops pure vertical in upper.
+    path.push([xR_up, yFront, 2.5]);                       // P13 down 1
+    path.push([xR_up, yFront, 1.5]);                       // P14 down 2
+    path.push([xR_up, yFront, slipZ]);                     // P15 down 3
+    // Down 4 — sharp L: horizontal snap in the slip band, then vertical.
+    path.push([xR_down, yFront, slipZ]);                   // P16 down 4 turn (horizontal)
+    path.push([xR_down, yFront, zBot]);                    // P17 down 4 descent (vertical)
+    // b — closure back to start. |b| = |xR - xR_down| = 1, +x direction.
+    path.push([xR, yFront, zBot]);                         // P18 b
+
+    return path;
+  }
+
+  // Labels for the 18 segments of the 4×4 circuit above. Side order is
+  // LEFT → UP → RIGHT → DOWN (counter-clockwise from bottom-right).
+  // Down 4 is split into an L-shape (P15→P16 horizontal turn, P16→P17
+  // vertical descent) and both halves carry the "4" label.
+  const EDGE_STEP_LABELS = [
+    '1','2','3','4',   // left (in lower)
+    '1','2','3','4',   // up (first hop carries slip-plane snap)
+    '1','2','3','4',   // right (in upper)
+    '1','2','3',       // down 1, 2, 3
+    '4','4',           // down 4 (horizontal turn, then vertical descent)
+    'b'                // closure (= the missing block, defines b)
+  ];
+
+  // ====================================================
+  // Screw: circuit path (in xy plane at z = midplane)
+  // ====================================================
+  function screwCircuitSteps(t) {
+    const N = SCREW.N;
+    const path = [];
+    const ringR = N - 0.5;
+    // Walk a closed square in xy, picking up z displacement from helical field
+    // Path: (R,R) → (R,-R) → (-R,-R) → (-R,R) → (R,R), going CW so we sweep
+    // angle from 0 → -2π... actually let's go CCW so θ sweeps 0 → 2π.
+    // Start at (R, ε) just above +x axis, θ ≈ 0, z = midplane
+    // Then go CCW around: (R, R) → (-R, R) → (-R, -R) → (R, -R) → back to start
+
+    function pt(x, y) {
+      const a = screwAngle(x, y);
+      const uz = t * a / (2 * Math.PI);
+      return [x, y, uz];
+    }
+
+    const Ns = 6;  // sub-steps per side for smoothness
+    function side(x0, y0, x1, y1) {
+      for (let s = 1; s <= Ns; s++) {
+        const u = s / Ns;
+        path.push(pt(lerp(x0, x1, u), lerp(y0, y1, u)));
+      }
+    }
+    const R = ringR;
+    // Start above +x axis (so θ ≈ 0)
+    path.push(pt(R, 0.0001));
+    side( R,  0.0001,  R,  R);
+    side( R,  R,      -R,  R);
+    side(-R,  R,      -R, -R);
+    side(-R, -R,       R, -R);
+    side( R, -R,       R, -0.0001);
+    // End approaches +x axis from y < 0, so θ → 2π, z = b (= 1)
+    return path;
+  }
+
+  // ====================================================
+  // Dislocation line / Burgers vector / slip plane geometry
+  // ====================================================
+  // Tessellate the edge dislocation line into short segments and push them
+  // into the depth-sorted face list so front boxes occlude the back portion
+  // of the line — instead of the line drawing on top of every cell.
+  function addEdgeLineSegments(faces) {
+    if (mode !== 'edge') return;
+    if (!togs.line) return;
+    const sweep = getLineSweep(tForm);
+    if (sweep <= 0) return;
+    const yHalf = (EDGE.NY - 1) / 2;
+    const xCore = -2.5 + EDGE.EXTRA_I * 5/6;  // = 0
+    const zCore = EDGE.SLIP_Z;
+    const yStart = -yHalf - 0.4;
+    const yEnd   =  yHalf + 0.4;
+    const yCur   = lerp(yStart, yEnd, sweep);
+    const nSeg = 40;
+    for (let i = 0; i < nSeg; i++) {
+      const u0 = i / nSeg;
+      const u1 = (i + 1) / nSeg;
+      const y0 = lerp(yStart, yCur, u0);
+      const y1 = lerp(yStart, yCur, u1);
+      const pa = proj([xCore, y0, zCore]);
+      const pb = proj([xCore, y1, zCore]);
+      faces.push({
+        kind: 'line',
+        pa: [pa[0], pa[1]],
+        pb: [pb[0], pb[1]],
+        depth: (pa[2] + pb[2]) / 2,
+        color: '#dd2222',
+        width: 3.2,
+        alpha: 1.0
+      });
+    }
+  }
+
+  function edgeOverlays() {
+    if (mode !== 'edge') return;
+    const yHalf = (EDGE.NY - 1) / 2;
+    const xCore = -2.5 + EDGE.EXTRA_I * 5/6;  // = 0
+    const zCore = EDGE.SLIP_Z;
+
+    // The dislocation line itself is rendered in the depth-sorted face pass
+    // (see addEdgeLineSegments). Here we only draw the ⊥ glyph at the front
+    // end of the line, which always sits in front of the lattice and so is
+    // safe to draw on top.
+    const sweep = getLineSweep(tForm);
+    if (togs.line && sweep > 0) {
+      const yStart = -yHalf - 0.4;
+      const p = proj([xCore, yStart, zCore]);
+      ctx.save();
+      ctx.fillStyle = '#dd2222';
+      ctx.font = 'bold 26px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText('⊥', p[0], p[1] + 3);
+      ctx.restore();
+    }
+    // Note: Burgers vector b is NOT shown during formation. It appears only
+    // as the closure failure once the user runs the circuit trace.
+  }
+
+  function screwOverlays() {
+    if (mode !== 'screw') return;
+    const N = SCREW.N;
+    const formed = tForm > 0.05;
+
+    // Cut plane (y = 0, x > 0), translucent yellow (always shown once formation begins)
+    if (formed) {
+      const x0 = 0.0, x1 = N + 0.5;
+      const z0 = -N - 0.5, z1 = N + 0.5;
+      const zTop1 = z1 + tForm;  // upper edge lifts as crystal shears
+      drawPolyFill3D(
+        [[x0, 0, z0],[x1, 0, z0],[x1, 0, zTop1],[x0, 0, z1]],
+        'rgba(240,200,80,0.22)', 'rgba(190,140,30,0.55)'
+      );
+    }
+    // Dislocation line (along z, at origin)
+    if (togs.line) {
+      drawLine3D([0, 0, -N - 0.7], [0, 0, N + 1.0 + (tForm)], '#dd2222', 3.2);
+    }
+    // Burgers vector b (along z), at edge of cut plane
+    if (togs.burger && formed) {
+      const x0 = N + 0.7, y0 = 0;
+      drawArrow3D([x0, y0, -0.5], [x0, y0, 0.5 + tForm * 0.0], '#1697c4', 3);
+      // mark magnitude = b in z
+      const p = proj([x0 + 0.2, y0, 0.55]);
+      ctx.save();
+      ctx.fillStyle = '#1697c4';
+      ctx.font = 'italic bold 14px Georgia, serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('b', p[0], p[1]);
+      ctx.restore();
+    }
+  }
+
+  // ====================================================
+  // Circuit overlay (drawn separately, animated)
+  // ====================================================
+  function drawCircuit(tC) {
+    if (tC <= 0) return;
+    const isEdge = (mode === 'edge');
+    const path = isEdge ? edgeCircuitSteps(tForm) : screwCircuitSteps(tForm);
+    if (path.length < 2) return;
+
+    const totalSegs = path.length - 1;
+    const progress = tC * totalSegs;
+    const fullSegs = Math.floor(progress);
+    const partial  = progress - fullSegs;
+
+    // Edge mode treats the LAST segment as the b vector and styles it
+    // separately. Other modes just dash the whole loop.
+    const hasB = isEdge;
+    const dashSegCount = hasB ? totalSegs - 1 : totalSegs;
+
+    // Path projection cache
+    const proj2 = path.map(p => proj(p));
+    const p0 = proj2[0];
+
+    // ---- DASHED 12-hop circuit ----
+    ctx.save();
+    ctx.strokeStyle = '#222';
+    ctx.lineWidth = 2.4;
+    ctx.setLineDash([5, 4]);
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(p0[0], p0[1]);
+    const dashEnd = Math.min(fullSegs, dashSegCount);
+    for (let i = 1; i <= dashEnd; i++) ctx.lineTo(proj2[i][0], proj2[i][1]);
+    if (fullSegs < dashSegCount && partial > 0) {
+      const a = path[fullSegs], b = path[fullSegs + 1];
+      const p = proj([lerp(a[0],b[0],partial), lerp(a[1],b[1],partial), lerp(a[2],b[2],partial)]);
+      ctx.lineTo(p[0], p[1]);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+
+    // ---- b SEGMENT (solid blue arrow, edge mode only) ----
+    if (hasB && fullSegs >= dashSegCount) {
+      // We're on or past the final segment. Draw it as a solid arrow.
+      const bStart = path[dashSegCount];
+      let bEndPt;
+      if (fullSegs >= totalSegs) {
+        bEndPt = path[totalSegs];
+      } else {
+        const a = path[dashSegCount], b = path[dashSegCount + 1];
+        bEndPt = [lerp(a[0],b[0],partial), lerp(a[1],b[1],partial), lerp(a[2],b[2],partial)];
+      }
+      drawArrow3D(bStart, bEndPt, '#1697c4', 4);
+    }
+
+    // ---- Start marker ----
+    ctx.save();
+    ctx.fillStyle = '#222';
+    ctx.beginPath(); ctx.arc(p0[0], p0[1], 4.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p0[0], p0[1], 2, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // ---- Step counter labels ----
+    // Show the label of the last fully completed segment, anchored at that
+    // segment's endpoint. So as the walker arrives at point Pn the label
+    // "n's-side-step" snaps on; when the walker arrives at Pn+1 it snaps to
+    // the next one. The final "b" label persists when the trace completes.
+    if (isEdge) {
+      const lastDone = Math.floor(progress) - 1;
+      if (lastDone >= 0 && lastDone < EDGE_STEP_LABELS.length) {
+        const isBLabel = (lastDone === EDGE_STEP_LABELS.length - 1);
+        const lblText = EDGE_STEP_LABELS[lastDone];
+        const labelPt = proj2[lastDone + 1];
+        // Offset the label outward from the circuit centre so it doesn't
+        // sit on the dashed line. Use average of all path points so this
+        // works for any circuit size.
+        let cx = 0, cy = 0;
+        for (const p of proj2) { cx += p[0]; cy += p[1]; }
+        cx /= proj2.length;
+        cy /= proj2.length;
+        let dx = labelPt[0] - cx, dy = labelPt[1] - cy;
+        const L = Math.hypot(dx, dy) || 1;
+        dx /= L; dy /= L;
+        const offset = isBLabel ? 22 : 16;
+        ctx.save();
+        ctx.fillStyle = isBLabel ? '#1697c4' : '#222';
+        ctx.font = isBLabel ? 'italic bold 20px Georgia, serif' : 'bold 15px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(lblText, labelPt[0] + dx * offset, labelPt[1] + dy * offset);
+        ctx.restore();
+      }
+    }
+  }
+
+  // ====================================================
+  // Main draw
+  // ====================================================
+  function redraw() {
+    ctx.clearRect(0, 0, W, H);
+
+    const faces = mode === 'edge' ? buildEdge(tForm) : buildScrew(tForm);
+
+    // Inject the dislocation line into the same depth-sorted pass as the box
+    // faces so that boxes in front of it properly hide it.
+    addEdgeLineSegments(faces);
+
+    faces.sort((a, b) => a.depth - b.depth);  // far → near
+    for (const f of faces) {
+      ctx.globalAlpha = f.alpha != null ? f.alpha : 1.0;
+      if (f.kind === 'line') {
+        ctx.strokeStyle = f.color;
+        ctx.lineWidth = f.width;
+        ctx.lineCap = 'round';
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(f.pa[0], f.pa[1]);
+        ctx.lineTo(f.pb[0], f.pb[1]);
+        ctx.stroke();
+      } else {
+        ctx.beginPath();
+        ctx.moveTo(f.poly[0][0], f.poly[0][1]);
+        for (let i = 1; i < f.poly.length; i++) ctx.lineTo(f.poly[i][0], f.poly[i][1]);
+        ctx.closePath();
+        ctx.fillStyle = f.fill;
+        ctx.fill();
+        ctx.strokeStyle = f.stroke;
+        ctx.lineWidth = 0.7;
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1.0;
+
+    // Overlays
+    if (mode === 'edge') edgeOverlays();
+    else screwOverlays();
+
+    // Circuit (top)
+    drawCircuit(tCircuit);
+
+    drawAxisHUD();
+  }
+
+  // ====================================================
+  // Axis HUD
+  // ====================================================
+  function drawAxisHUD() {
+    const S = 56;
+    if (hud.width !== S * DPR) {
+      hud.width = S * DPR;
+      hud.height = S * DPR;
+    }
+    hudCtx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    hudCtx.clearRect(0, 0, S, S);
+    const cx = S/2, cy = S/2, len = 20;
+
+    const axes = [
+      {d:[1,0,0], c:'#dd2222', l:'x'},
+      {d:[0,1,0], c:'#22aa22', l:'y'},
+      {d:[0,0,1], c:'#3a66c8', l:'z'}
+    ];
+    const pts = axes.map(a => {
+      let q = negXSwapYZ(a.d);
+      q = rotY(q, yaw);
+      q = rotX(q, pitch);
+      return { px: cx + q[0]*len, py: cy - q[1]*len, depth: q[2], c: a.c, l: a.l };
+    });
+    pts.sort((a, b) => a.depth - b.depth);
+    pts.forEach(({px, py, c, l}) => {
+      hudCtx.strokeStyle = c;
+      hudCtx.lineWidth = 2;
+      hudCtx.beginPath();
+      hudCtx.moveTo(cx, cy);
+      hudCtx.lineTo(px, py);
+      hudCtx.stroke();
+      hudCtx.fillStyle = c;
+      hudCtx.font = 'bold 10px sans-serif';
+      hudCtx.textAlign = 'center';
+      hudCtx.textBaseline = 'middle';
+      hudCtx.fillText(l, px + (px - cx) * 0.4, py + (py - cy) * 0.4);
+    });
+  }
+
+  // ====================================================
+  // Animation loop
+  // ====================================================
+  function loop(now) {
+    if (!lastFrame) lastFrame = now;
+    const dt = (now - lastFrame) / 1000;
+    lastFrame = now;
+    let need = false;
+
+    if (playing) {
+      tForm = Math.min(1, tForm + dt * 0.18);  // ~5.5 s for the full A→B→C→D pass
+      if (tForm >= 1) {
+        playing = false;
+        const btn = document.getElementById('playBtn');
+        btn.textContent = '▶ Play';
+        btn.classList.remove('playing');
+      }
+      document.getElementById('tSlider').value = tForm;
+      updateLabel();
+      checkAutoOpacity();
+      need = true;
+    }
+    if (circuitAnim) {
+      tCircuit = Math.min(1, tCircuit + dt * 0.4);
+      const cs = document.getElementById('circuitSlider');
+      const cl = document.getElementById('circuitLbl');
+      if (cs) cs.value = tCircuit;
+      if (cl) cl.textContent = Math.round(tCircuit * 100) + '%';
+      if (tCircuit >= 1) {
+        circuitAnim = false;
+        circuitDone = true;
+        const btn = document.getElementById('circuitPlayBtn');
+        if (btn) {
+          btn.textContent = '▶ Trace b';
+          btn.classList.remove('playing');
+        }
+      }
+      need = true;
+    }
+
+    if (need) redraw();
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // ====================================================
+  // UI handlers
+  // ====================================================
+  function updateLabel() {
+    const lbl = document.getElementById('tLabel');
+    if (tForm <= 0.005) { lbl.textContent = 'Perfect'; return; }
+    if (mode === 'edge') {
+      if (tForm >= 0.995)     lbl.textContent = 'Dislocated';
+      else if (tForm < PH.A)  lbl.textContent = 'Inserting';
+      else                    lbl.textContent = 'Line sweep';
+    } else {
+      if (tForm >= 0.995) lbl.textContent = 'Sheared';
+      else lbl.textContent = Math.round(tForm * 100) + '%';
+    }
+  }
+
+  window.togglePlay = function () {
+    if (tForm >= 0.999) tForm = 0;
+    playing = !playing;
+    const btn = document.getElementById('playBtn');
+    btn.textContent = playing ? '⏸ Pause' : '▶ Play';
+    btn.classList.toggle('playing', playing);
+    lastFrame = 0;
+  };
+
+  window.setOpacity = function (v) {
+    boxOpacity = clamp(v, 0.05, 1);
+    const lbl = document.getElementById('opacityLbl');
+    if (lbl) lbl.textContent = Math.round(boxOpacity * 100) + '%';
+    redraw();
+  };
+
+  window.setAnim = function (t) {
+    tForm = clamp(t, 0, 1);
+    playing = false;
+    const btn = document.getElementById('playBtn');
+    btn.textContent = '▶ Play';
+    btn.classList.remove('playing');
+    document.getElementById('tSlider').value = tForm;
+    updateLabel();
+    checkAutoOpacity();
+    resetCircuit();
+    redraw();
+  };
+
+  window.showSec = function (id, el) {
+    mode = id;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById('sec-' + id).classList.add('active');
+    rebuildToggles();
+    setAnim(0);
+  };
+
+  // Each view has a primary angle and a "flipped" angle. Clicking a view
+  // button when it's already active toggles between the two; otherwise it
+  // switches to that view at its primary angle.
+  const VIEW_PRESETS = {
+    front: [{ y: 0,           p: 0                  }, { y: Math.PI,        p: 0                   }],
+    side:  [{ y: Math.PI / 2, p: 0                  }, { y: -Math.PI / 2,   p: 0                   }],
+    top:   [{ y: 0,           p: Math.PI / 2 - 0.02 }, { y: 0,              p: -Math.PI / 2 + 0.02 }],
+    iso:   [{ y: 0.55,        p: 0.45               }, { y: 0.55 + Math.PI, p: 0.45                }]
+  };
+  const VIEW_TOGGLE = { front: 0, side: 0, top: 0, iso: 0 };
+
+  window.setView = function (which, el) {
+    const wasActive = el.classList.contains('vact');
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('vact'));
+    el.classList.add('vact');
+    if (wasActive) VIEW_TOGGLE[which] = 1 - VIEW_TOGGLE[which];
+    else           VIEW_TOGGLE[which] = 0;
+    const p = VIEW_PRESETS[which][VIEW_TOGGLE[which]];
+    yaw = p.y; pitch = p.p;
+    redraw();
+  };
+
+  function resetCircuit() {
+    tCircuit = 0;
+    circuitAnim = false;
+    circuitDone = false;
+    const btn = document.getElementById('circuitPlayBtn');
+    if (btn) {
+      btn.textContent = '▶ Trace b';
+      btn.classList.remove('playing');
+    }
+    const cs = document.getElementById('circuitSlider');
+    if (cs) cs.value = 0;
+    const cl = document.getElementById('circuitLbl');
+    if (cl) cl.textContent = '0%';
+  }
+
+  window.setCircuit = function (t) {
+    tCircuit = clamp(t, 0, 1);
+    circuitAnim = false;
+    circuitDone = (tCircuit >= 0.999);
+    const btn = document.getElementById('circuitPlayBtn');
+    if (btn) {
+      btn.textContent = '▶ Trace b';
+      btn.classList.remove('playing');
+    }
+    const cs = document.getElementById('circuitSlider');
+    if (cs) cs.value = tCircuit;
+    const cl = document.getElementById('circuitLbl');
+    if (cl) cl.textContent = Math.round(tCircuit * 100) + '%';
+    redraw();
+  };
+
+  window.circuitToggle = function () {
+    // If we're at the end, rewind first
+    if (tCircuit >= 0.999) tCircuit = 0;
+    // Make sure the crystal is fully formed before tracing
+    if (tForm < 0.999) setAnim(1);
+    circuitAnim = !circuitAnim;
+    const btn = document.getElementById('circuitPlayBtn');
+    if (btn) {
+      btn.textContent = circuitAnim ? '⏸ Trace b' : '▶ Trace b';
+      btn.classList.toggle('playing', circuitAnim);
+    }
+    lastFrame = 0;
+  };
+
+  function rebuildToggles() {
+    const c = document.getElementById('togs');
+    c.innerHTML = '';
+    const items = mode === 'edge' ? [
+      { k: 'line',      lbl: 'Dislocation line',              col: '#dd2222' },
+      { k: 'burger',    lbl: 'Burgers vector b',              col: '#1697c4' }
+    ] : [
+      { k: 'line',      lbl: 'Dislocation line (screw axis)', col: '#dd2222' },
+      { k: 'burger',    lbl: 'Burgers vector b',              col: '#1697c4' }
+    ];
+    for (const it of items) {
+      const row = document.createElement('div');
+      row.className = 'tog-row' + (togs[it.k] ? ' on' : '');
+      row.innerHTML =
+        '<div class="tog-lbl">' +
+          '<span class="ic" style="background:' + it.col + '"></span>' +
+          '<span>' + it.lbl + '</span>' +
+        '</div>' +
+        '<div class="switch"></div>';
+      row.onclick = () => {
+        togs[it.k] = !togs[it.k];
+        row.classList.toggle('on', togs[it.k]);
+        redraw();
+      };
+      c.appendChild(row);
+    }
+  }
+
+  // ====================================================
+  // Pointer (drag) + wheel (zoom)
+  // ====================================================
+  let dragging = false, lx = 0, ly = 0;
+  cv.addEventListener('pointerdown', e => {
+    dragging = true; lx = e.clientX; ly = e.clientY;
+    cv.setPointerCapture(e.pointerId);
+  });
+  cv.addEventListener('pointerup',     () => { dragging = false; });
+  cv.addEventListener('pointercancel', () => { dragging = false; });
+  cv.addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly;
+    lx = e.clientX; ly = e.clientY;
+    yaw   += dx * 0.01;
+    pitch  = clamp(pitch + dy * 0.01, -Math.PI/2 + 0.05, Math.PI/2 - 0.05);
+    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('vact'));
+    redraw();
+  });
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    zoomF *= e.deltaY > 0 ? 0.93 : 1.07;
+    zoomF = clamp(zoomF, 0.4, 3);
+    redraw();
+  }, { passive: false });
+
+  // ====================================================
+  // Init
+  // ====================================================
+  new ResizeObserver(resize).observe(cv);
+  rebuildToggles();
+  resize();
+})();
+</script>
 </body>
 </html>
