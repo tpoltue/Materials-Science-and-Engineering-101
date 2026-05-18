@@ -600,6 +600,13 @@ const Y_MIN = 450;                    // °C
 const Y_MAX = 750;
 
 let DW = 0, DH = 0;     // diagram canvas pixel size
+function fontScale() {
+  const w = window.innerWidth || 1024;
+  if (w <= 480) return 0.7;
+  if (w <= 720) return 0.82;
+  return 1;
+}
+function fpx(size) { return (size * fontScale()).toFixed(2); }
 const PAD_L = 70, PAD_R = 22, PAD_T = 22, PAD_B = 52;
 function plotRect() {
   return { x0: PAD_L, y0: PAD_T, x1: DW - PAD_R, y1: DH - PAD_B };
@@ -674,7 +681,7 @@ function drawAxes() {
   diaCtx.strokeRect(r.x0 + 0.5, r.y0 + 0.5, r.x1-r.x0 - 1, r.y1-r.y0 - 1);
 
   // X ticks (log decades)
-  diaCtx.font = '13.5px "JetBrains Mono", "SF Mono", monospace';
+  diaCtx.font = fpx(13.5) + 'px "JetBrains Mono", "SF Mono", monospace';
   diaCtx.fillStyle = '#666';
   diaCtx.textAlign = 'center';
   diaCtx.textBaseline = 'top';
@@ -706,12 +713,12 @@ function drawAxes() {
     }
   }
   // X axis label
-  diaCtx.font = '600 14px "IBM Plex Sans Thai Looped", sans-serif';
+  diaCtx.font = '600 ' + fpx(14) + 'px "IBM Plex Sans Thai Looped", sans-serif';
   diaCtx.fillStyle = '#333';
   diaCtx.fillText('Time (seconds, log scale)', (r.x0 + r.x1)/2, DH - 22);
 
   // Y ticks every 50 °C
-  diaCtx.font = '13.5px "JetBrains Mono", "SF Mono", monospace';
+  diaCtx.font = fpx(13.5) + 'px "JetBrains Mono", "SF Mono", monospace';
   diaCtx.textAlign = 'right';
   diaCtx.textBaseline = 'middle';
   for (let T = 450; T <= 750; T += 50) {
@@ -731,7 +738,7 @@ function drawAxes() {
   diaCtx.save();
   diaCtx.translate(18, (r.y0 + r.y1)/2);
   diaCtx.rotate(-Math.PI/2);
-  diaCtx.font = '600 14px "IBM Plex Sans Thai Looped", sans-serif';
+  diaCtx.font = '600 ' + fpx(14) + 'px "IBM Plex Sans Thai Looped", sans-serif';
   diaCtx.fillStyle = '#333';
   diaCtx.textAlign = 'center';
   diaCtx.fillText('Temperature (°C)', 0, 0);
@@ -745,7 +752,7 @@ function supExp(p) {
 
 function drawRegionLabel(text, xLog, T, color='#1a1a1a', size=14, weight='700', align='center') {
   const [px, py] = diaToPx(xLog, T);
-  diaCtx.font = `${weight} ${size}px "IBM Plex Sans Thai Looped", sans-serif`;
+  diaCtx.font = `${weight} ${fpx(size)}px "IBM Plex Sans Thai Looped", sans-serif`;
   diaCtx.textAlign = align;
   diaCtx.textBaseline = 'middle';
   diaCtx.fillStyle = color;
@@ -801,7 +808,7 @@ function drawDot(xLog, T, withGuide=true) {
 function drawDotLabel(text) {
   // floating label pinned to the bottom-right corner of the plot
   const r = plotRect();
-  diaCtx.font = '700 14px "JetBrains Mono", "SF Mono", monospace';
+  diaCtx.font = '700 ' + fpx(14) + 'px "JetBrains Mono", "SF Mono", monospace';
   diaCtx.textAlign = 'right';
   diaCtx.textBaseline = 'middle';
   const pad = 8;
@@ -828,7 +835,7 @@ function drawCurveLegend() {
     { label: 'Begin (~0 %)',        color: '#c43c3c', dash: false },
     { label: 'Completion (~100 %)', color: '#3d8a4f', dash: false },
   ];
-  diaCtx.font = '700 13px "IBM Plex Sans Thai Looped", sans-serif';
+  diaCtx.font = '700 ' + fpx(13) + 'px "IBM Plex Sans Thai Looped", sans-serif';
   diaCtx.textBaseline = 'middle';
   diaCtx.textAlign = 'left';
   const padX = 10, padY = 8, rowH = 19, swatchW = 22;
@@ -1013,7 +1020,7 @@ function redraw() {
   // sits flush against the plot's right border.
   {
     const [pxR, pyR] = diaToPx(X_MAX, 733);
-    diaCtx.font = '600 12px "IBM Plex Sans Thai Looped", sans-serif';
+    diaCtx.font = '600 ' + fpx(12) + 'px "IBM Plex Sans Thai Looped", sans-serif';
     diaCtx.fillStyle = '#333';
     diaCtx.textAlign = 'right';
     diaCtx.textBaseline = 'middle';

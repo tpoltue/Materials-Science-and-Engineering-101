@@ -219,13 +219,12 @@
   .mat-tab.aluminum.active { background: #FFF299; }
 
   .sn-graph-wrap {
-    aspect-ratio: 1.6 / 1; min-height: 240px;
     background: linear-gradient(180deg, #ffffff 0%, #eef1f5 100%);
     border: 1px solid var(--line); border-radius: 14px;
     overflow: hidden; position: relative;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
-  .sn-graph-wrap svg { display: block; width: 100%; height: 100%; }
+  .sn-graph-wrap svg { display: block; width: 100%; height: auto; max-width: 100%; }
 
   /* legend below the plot */
   .sn-legend {
@@ -289,13 +288,12 @@
   }
   .cg-plate-wrap svg { display: block; width: 100%; height: 100%; }
   .cg-graph-wrap {
-    aspect-ratio: 1.7 / 1; min-height: 220px;
     background: linear-gradient(180deg, #ffffff 0%, #eef1f5 100%);
     border: 1px solid var(--line); border-radius: 14px;
     overflow: hidden; position: relative;
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
   }
-  .cg-graph-wrap svg { display: block; width: 100%; height: 100%; }
+  .cg-graph-wrap svg { display: block; width: 100%; height: auto; max-width: 100%; }
 
   .controls {
     display: flex; align-items: center; gap: 8px;

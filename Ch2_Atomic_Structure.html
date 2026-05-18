@@ -723,7 +723,7 @@ function drawWave(){
     if(!isEnd){wX.fillStyle='#dd2222';wX.font='11px sans-serif';wX.textAlign='center';wX.fillText('node',x,cy+20);}
   }
   wX.fillStyle='#555';wX.font='12px "IBM Plex Sans Thai Looped",sans-serif';wX.textAlign='center';
-  wX.fillText(`n = ${n}   λ = 2L/${n}   ${n-1} interior node${n-1!==1?'s':''}`,wCSSW/2,wCSSH-8);
+  wX.fillText(`n = ${n}   λ = 2L/${n}   ${n-1} interior node${n-1!==1?'s':''}`,wCSSW/2,16);
   ['0','L'].forEach((t,i)=>{wX.fillStyle='#999';wX.font='11px sans-serif';wX.textAlign='center';wX.fillText(t,i===0?mg:mg+L,cy+30);});
   wT+=0.04; requestAnimationFrame(drawWave);
 }

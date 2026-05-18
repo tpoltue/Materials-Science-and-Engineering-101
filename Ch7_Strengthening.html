@@ -1488,15 +1488,14 @@ math mi { font-style: italic; }
 
   function drawSolute() {
     const sidePad     = 18;
-    const titleY      = 26;
-    const belowTitle  = 20;
+    const topPad      = 14;
     const legendH     = 32;
     const aboveLegend = 16;
     const belowLegend = 12;
     const noteH       = 14;
     const bottomPad   = 12;
 
-    const latticeTop    = titleY + belowTitle;
+    const latticeTop    = topPad;
     const latticeBottom = H - bottomPad - noteH - belowLegend - legendH - aboveLegend;
     const latticeH      = latticeBottom - latticeTop;
 
@@ -1506,11 +1505,6 @@ math mi { font-style: italic; }
     const dy     = Math.min(dx, latticeH / (rows - 1));
     const x0     = (W - (cols - 1) * dx) / 2;
     const y0     = latticeTop + (latticeH - (rows - 1) * dy) / 2;
-
-    // ---- Title (balanced spacing above & below) ----
-    drawText(sidePad, titleY,
-             'host lattice with random solutes — dislocation line bows around each obstacle',
-             '#666', 12, '500');
 
     // ---- Lattice ----
     drawLatticeBonds(x0, y0, dx, dy, 0, rows, 0, cols, '#ddd');
