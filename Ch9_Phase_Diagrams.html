@@ -106,6 +106,7 @@
   }
   .tab.cuni.active { background: #FFF299; }
   .tab.cuag.active { background: #CCD9FF; }
+  .tab.fec.active  { background: #FFD9D9; }
   .tab.niti.active { background: #E8D6FF; }
 
   /* ── hint strip ── */
@@ -130,6 +131,68 @@
   .lever-section {
     margin-top: 14px; padding-top: 14px;
     border-top: 1px solid var(--line);
+  }
+  /* ─── axis-lock controls (slide direction) ─── */
+  .axis-controls {
+    display: flex; align-items: center; gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .axis-controls .head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; color: #888;
+    margin-right: 4px;
+  }
+  .axis-btn {
+    padding: 5px 11px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.7);
+    border-radius: 999px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 11.5px; font-weight: 500;
+    color: var(--ink-soft);
+    transition: all 0.18s ease;
+  }
+  .axis-btn:hover { background: #fff; color: var(--ink); border-color: var(--line-strong); }
+  .axis-btn.active {
+    background: var(--unit-tint);
+    color: var(--ink);
+    border-color: transparent;
+    font-weight: 700;
+  }
+
+  /* ─── invariant points legend (bottom of diagram) ─── */
+  .invariant-legend {
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: #f7f7f9;
+    border: 1px solid #ececec;
+    border-radius: 8px;
+    display: flex; flex-wrap: wrap; gap: 10px 14px;
+    font-size: 12px;
+    align-items: center;
+  }
+  .invariant-legend .head {
+    font-size: 10.5px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; color: #888;
+    margin-right: 4px;
+  }
+  .inv-chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11.5px; font-weight: 600;
+    color: #333;
+  }
+  .inv-chip .dot {
+    width: 11px; height: 11px; border-radius: 50%;
+    display: inline-block;
+    border: 1.5px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.18);
+  }
+  .inv-chip .meta {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
+    font-weight: 500; font-size: 10.5px; color: #666;
+    margin-left: 2px;
   }
   .lever-section h4 {
     font-family: "IBM Plex Sans Thai Looped", sans-serif;
@@ -402,7 +465,8 @@
   <div class="tabs" role="tablist">
     <button class="tab cuni active"   data-tab="cuni" role="tab" aria-selected="true">Isomorphous · Cu–Ni</button>
     <button class="tab cuag"          data-tab="cuag" role="tab" aria-selected="false">Eutectic · Cu–Ag</button>
-    <button class="tab niti"          data-tab="niti" role="tab" aria-selected="false">Eutectoid · Fe–C</button>
+    <button class="tab fec"           data-tab="fec"  role="tab" aria-selected="false">Fe–C</button>
+    <button class="tab niti"          data-tab="niti" role="tab" aria-selected="false">Ni–Ti</button>
   </div>
 
   <p class="hint">
@@ -414,11 +478,22 @@
     <div class="card diagram-card">
       <div class="diagram-header">
         <h3 id="diagram-title">Phase Diagram</h3>
-        <button id="zoom-toggle" class="zoom-btn" style="display:none;">Zoom: α region</button>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <button id="invariant-toggle" class="zoom-btn" style="display:none;">Show invariant points</button>
+          <button id="zoom-toggle-high" class="zoom-btn" style="display:none;" data-zoom="high">Zoom: low-C, high-T</button>
+          <button id="zoom-toggle-low"  class="zoom-btn" style="display:none;" data-zoom="low">Zoom: low-C, low-T</button>
+        </div>
       </div>
       <div class="diagram-wrap">
         <canvas id="diagram"></canvas>
       </div>
+      <div class="axis-controls">
+        <span class="head">Slide</span>
+        <button class="axis-btn active" data-lock="free">Free 2D</button>
+        <button class="axis-btn" data-lock="fixT">Fix T (slide c)</button>
+        <button class="axis-btn" data-lock="fixC">Fix c (slide T)</button>
+      </div>
+      <div class="invariant-legend" id="invariant-legend" style="display:none;"></div>
       <div class="lever-section">
         <h4>Tie Line &amp; Lever Rule</h4>
         <div class="lever">
@@ -586,23 +661,24 @@ const SYS_CUNI = {
   xMin: 0, xMax: 100,
   yMin: 1000, yMax: 1600,
   reactionType: 'isomorphous',
-  // Liquidus & solidus extracted from the reference image; smooth concave-up lens
-  // with the widest freezing range around 25-40 wt% Ni and converging slowly toward Ni.
+  // Liquidus & solidus from MATLAB parametric forms:
+  //   T_L = 1085 + 4.15*C - 0.0045*C^2
+  //   T_S = 1085 + 2.05*C + 0.0165*C^2
   liquidus: [
-    {x:0,   y:1085}, {x:5,   y:1117}, {x:10,  y:1147}, {x:15,  y:1175},
-    {x:20,  y:1200}, {x:25,  y:1222}, {x:30,  y:1242}, {x:35,  y:1260},
-    {x:40,  y:1278}, {x:45,  y:1295}, {x:50,  y:1310}, {x:55,  y:1325},
-    {x:60,  y:1340}, {x:65,  y:1355}, {x:70,  y:1370}, {x:75,  y:1385},
-    {x:80,  y:1400}, {x:85,  y:1415}, {x:90,  y:1430}, {x:95,  y:1443},
-    {x:100, y:1455}
+    {x:0,   y:1085.0}, {x:5,   y:1105.6}, {x:10,  y:1126.1}, {x:15,  y:1146.2},
+    {x:20,  y:1166.2}, {x:25,  y:1185.9}, {x:30,  y:1205.5}, {x:35,  y:1224.7},
+    {x:40,  y:1243.8}, {x:45,  y:1262.6}, {x:50,  y:1281.3}, {x:55,  y:1299.6},
+    {x:60,  y:1317.8}, {x:65,  y:1335.7}, {x:70,  y:1353.5}, {x:75,  y:1370.9},
+    {x:80,  y:1388.2}, {x:85,  y:1405.2}, {x:90,  y:1422.1}, {x:95,  y:1438.6},
+    {x:100, y:1455.0}
   ],
   solidus: [
-    {x:0,   y:1085}, {x:5,   y:1098}, {x:10,  y:1115}, {x:15,  y:1135},
-    {x:20,  y:1155}, {x:25,  y:1175}, {x:30,  y:1195}, {x:35,  y:1218},
-    {x:40,  y:1238}, {x:45,  y:1258}, {x:50,  y:1278}, {x:55,  y:1298},
-    {x:60,  y:1318}, {x:65,  y:1335}, {x:70,  y:1355}, {x:75,  y:1370},
-    {x:80,  y:1388}, {x:85,  y:1405}, {x:90,  y:1422}, {x:95,  y:1438},
-    {x:100, y:1455}
+    {x:0,   y:1085.0}, {x:5,   y:1095.7}, {x:10,  y:1107.2}, {x:15,  y:1119.5},
+    {x:20,  y:1132.6}, {x:25,  y:1146.6}, {x:30,  y:1161.4}, {x:35,  y:1177.0},
+    {x:40,  y:1193.4}, {x:45,  y:1210.7}, {x:50,  y:1228.8}, {x:55,  y:1247.7},
+    {x:60,  y:1267.4}, {x:65,  y:1288.0}, {x:70,  y:1309.4}, {x:75,  y:1331.6},
+    {x:80,  y:1354.6}, {x:85,  y:1378.5}, {x:90,  y:1403.2}, {x:95,  y:1428.7},
+    {x:100, y:1455.0}
   ],
   presets: [
     {label:'Cu (pure)',   c:0,  T:1500},
@@ -693,7 +769,7 @@ SYS_CUNI.getState = function(c, T) {
   return {
     regionLabel: 'L + α',
     stageTitle: 'Two-phase — L + α',
-    stageDesc: 'Between liquidus and solidus. Solid α nucleates and grows in the melt; the tie line gives the equilibrium compositions, the lever rule the amounts.',
+    stageDesc: 'Between liquidus and solidus. α nucleates and grows as isolated grains in the melt; the tie line gives the equilibrium compositions, the lever rule the amounts.',
     phases: [
       {name:'L', frac:wL, seg:'seg-L'},
       {name:'α', frac:wA, seg:'seg-alpha'}
@@ -701,7 +777,7 @@ SYS_CUNI.getState = function(c, T) {
     tieLine: { T:T, ends:[{name:'L', c:cL}, {name:'α', c:cS}] },
     reactionEqn: '',
     activePhases: ['L','α'],
-    grainStates: { mode:'liquidAlphaMix', fracAlpha: wA }
+    grainStates: { mode:'isolatedBlobs', blobPhase:'α', bgPhase:'L', solidFraction: wA }
   };
 };
 
@@ -717,37 +793,45 @@ const SYS_CUAG = {
   xMin: 0, xMax: 100,
   yMin: 200, yMax: 1100,
   reactionType: 'eutectic',
+  hasInvariantToggle: true,
   eutectic: { c: 71.9, T: 779, cAlpha: 8.0, cBeta: 91.2 },
-  // Cu-Ag curves extracted from the reference image
+  invariantPoints: [
+    { c: 71.9, T: 779, kind: 'Eutectic', desc: 'L → α + β  (779 °C, 71.9 wt% Ag)' }
+  ],
+  // Cu-Ag curves from MATLAB parametric forms:
+  //   Liquidus 1: T = 1085 - 306*(c/71.9)^1.1     (Cu side, c: 0 → 71.9)
+  //   Liquidus 2: T = 962  - 183*((100-c)/28.1)^1.1  (Ag side, c: 71.9 → 100)
+  //   Solidus 1:  T = 1085 - 306*(c/8.0)^0.8       (Cu side, c: 0 → 8.0)
+  //   Solidus 2:  T = 962  - 183*((100-c)/8.8)^0.8 (Ag side, c: 91.2 → 100)
+  //   Solvus 1:   c = 8.0 * exp(0.005*(T - 779))    (α-solvus)
+  //   Solvus 2:   c = 100 - 8.8 * exp(0.006*(T - 779)) (β-solvus)
   liqAlpha: [   // L/α+L liquidus on the Cu side
-    {x:0,    y:1085}, {x:5,    y:1063}, {x:10,   y:1042}, {x:15,   y:1020},
-    {x:20,   y:998},  {x:25,   y:975},  {x:30,   y:952},  {x:35,   y:932},
-    {x:40,   y:912},  {x:45,   y:892},  {x:50,   y:870},  {x:55,   y:850},
-    {x:60,   y:828},  {x:65,   y:808},  {x:70,   y:788},  {x:71.9, y:779}
+    {x:0,    y:1085.0}, {x:5,    y:1069.5}, {x:10,   y:1051.9}, {x:15,   y:1031.1},
+    {x:20,   y:1008.7}, {x:25,   y:985.2},  {x:30,   y:967.8},  {x:35,   y:946.5},
+    {x:40,   y:924.7},  {x:45,   y:902.3},  {x:50,   y:880.0},  {x:55,   y:857.2},
+    {x:60,   y:834.1},  {x:65,   y:811.1},  {x:70,   y:787.9},  {x:71.9, y:779.0}
   ],
-  liqBeta: [    // L/β+L liquidus on the Ag side (near-linear in the image)
-    {x:71.9, y:779}, {x:75,   y:799}, {x:80,   y:832}, {x:85,   y:865},
-    {x:90,   y:897}, {x:95,   y:930}, {x:100,  y:962}
+  liqBeta: [    // L/β+L liquidus on the Ag side
+    {x:71.9, y:779.0}, {x:75,   y:801.1}, {x:80,   y:836.1}, {x:85,   y:870.3},
+    {x:90,   y:903.3}, {x:95,   y:934.6}, {x:100,  y:962.0}
   ],
-  solAlpha: [   // α/(α+L) solidus — sharp drop, concave-up
-    {x:0,   y:1085}, {x:0.5, y:1058}, {x:1,   y:1030}, {x:1.5, y:1000},
-    {x:2,   y:970},  {x:3,   y:925},  {x:4,   y:880},  {x:5,   y:845},
-    {x:6,   y:820},  {x:7,   y:800},  {x:8,   y:779}
+  solAlpha: [   // α/(α+L) solidus — sharp drop
+    {x:0,   y:1085.0}, {x:0.5, y:1051.9}, {x:1,   y:1027.0}, {x:1.5, y:1005.7},
+    {x:2,   y:984.0},  {x:3,   y:945.4},  {x:4,   y:909.3},  {x:5,   y:874.9},
+    {x:6,   y:841.8},  {x:7,   y:810.1},  {x:8,   y:779.0}
   ],
   solBeta: [    // β/(β+L) solidus
-    {x:91.2, y:779}, {x:92, y:790}, {x:93, y:810}, {x:94, y:838},
-    {x:95,   y:867}, {x:96, y:892}, {x:97, y:914}, {x:98, y:934},
-    {x:99,   y:950}, {x:100, y:962}
+    {x:91.2, y:779.0}, {x:92,   y:792.4}, {x:93,   y:809.6}, {x:94,   y:827.3},
+    {x:95,   y:845.5}, {x:96,   y:864.6}, {x:97,   y:884.7}, {x:98,   y:906.1},
+    {x:99,   y:929.9}, {x:100,  y:962.0}
   ],
-  solvAlpha: [  // α/(α+β) solvus — steeper near eutectoid (high T), flattens at low T
-    {x:0,   y:200}, {x:0.5, y:240}, {x:1.0, y:320}, {x:1.5, y:400},
-    {x:2.0, y:460}, {x:3.0, y:530}, {x:4.0, y:590}, {x:5.0, y:650},
-    {x:6.0, y:700}, {x:7.0, y:740}, {x:8.0, y:779}
+  solvAlpha: [  // α/(α+β) solvus — exponential decay
+    {x:0.44, y:200},  {x:0.73, y:300},  {x:1.20, y:400},  {x:1.98, y:500},
+    {x:3.27, y:600},  {x:5.39, y:700},  {x:8.0,  y:779}
   ],
-  solvBeta: [   // β/(α+β) solvus (mirror of α-solvus)
-    {x:91.2, y:779}, {x:92,   y:745}, {x:93,   y:705}, {x:94,   y:655},
-    {x:95,   y:600}, {x:96,   y:540}, {x:97,   y:470}, {x:97.5, y:400},
-    {x:98,   y:330}, {x:98.5, y:255}, {x:99,   y:215}, {x:100,  y:200}
+  solvBeta: [   // β/(α+β) solvus — exponential approach to pure Ag
+    {x:91.2,  y:779}, {x:94.52, y:700}, {x:96.99, y:600}, {x:98.35, y:500},
+    {x:99.09, y:400}, {x:99.50, y:300}, {x:99.73, y:200}
   ],
   presets: [
     {label:'5% Ag (α-rich)',     c:5,    T:1100},
@@ -833,8 +917,14 @@ SYS_CUAG.drawBoundaries = function(ctx, toPx) {
   ctx.moveTo(...toPx(sys.eutectic.cAlpha, sys.eutectic.T));
   ctx.lineTo(...toPx(sys.eutectic.cBeta,  sys.eutectic.T));
   ctx.stroke();
-  // Eutectic point
-  drawInvariantDot(ctx, toPx(sys.eutectic.c, sys.eutectic.T), 'E');
+  // Eutectic point (toggleable; label lives in the bottom legend)
+  if (showInvariantPoints) {
+    for (const p of sys.invariantPoints) {
+      drawInvariantPointMarker(ctx, toPx(p.c, p.T), p.kind);
+    }
+  } else {
+    drawInvariantDot(ctx, toPx(sys.eutectic.c, sys.eutectic.T), 'E');
+  }
 };
 
 SYS_CUAG.regionLabels = function(ctx, toPx) {
@@ -885,7 +975,8 @@ SYS_CUAG.getState = function(c, T) {
       phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'α',frac:wA,seg:'seg-alpha'}],
       tieLine:{T:T, ends:[{name:'α',c:cS},{name:'L',c:cL}]},
       reactionEqn:'',
-      activePhases:['L','α'], grainStates:{mode:'liquidAlphaMix', fracAlpha:wA, preEut:true, cuag:true, c:c}
+      activePhases:['L','α'],
+      grainStates:{mode:'isolatedBlobs', blobPhase:'α', bgPhase:'L', solidFraction:wA}
     };
   }
   if (T > eut.T && c >= eut.c && T < liqT && (solT_right === null || T >= solT_right)) {
@@ -900,7 +991,8 @@ SYS_CUAG.getState = function(c, T) {
       phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'β',frac:wB,seg:'seg-beta'}],
       tieLine:{T:T, ends:[{name:'L',c:cL},{name:'β',c:cS}]},
       reactionEqn:'',
-      activePhases:['L','β'], grainStates:{mode:'liquidBetaMix', fracBeta:wB, preEut:true, cuag:true, c:c}
+      activePhases:['L','β'],
+      grainStates:{mode:'isolatedBlobs', blobPhase:'β', bgPhase:'L', solidFraction:wB}
     };
   }
   // Below eutectic (T < 779)
@@ -979,7 +1071,9 @@ SYS_CUAG.getState = function(c, T) {
       tieLine:{T:T, ends:[{name:'α',c:cA},{name:'β',c:cB}]},
       reactionEqn,
       activePhases:['α','β'],
-      grainStates:{mode:'postEutectic', proEut, proFrac, eutFrac, lamA:'α', lamB:'β', cuag:true}
+      grainStates: proEut === null
+        ? {mode:'boundaryBand', bandPhase:'α', coreIsLamellar:true, coreLamA:'α', coreLamB:'β', bandFraction:0}
+        : {mode:'isolatedBlobs', blobPhase:proEut, bgIsLamellar:true, bgLamA:'α', bgLamB:'β', solidFraction:proFrac}
     };
   }
   // Default: two-phase fallback
@@ -1000,119 +1094,771 @@ function single(sys, ph, title, desc) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   SYSTEM 3: Fe–C  (Steel eutectoid — 0…2.14 wt% C)
+   SYSTEM 3: Fe–C  (Full Fe-Fe₃C diagram, 0…6.7 wt% C, 400…1600 °C)
+   Curves follow the MATLAB construction — δ-loop, peritectic 1493,
+   eutectic 1147, eutectoid 727, cementite line at 6.7 wt% C.
    ──────────────────────────────────────────────────────────────────── */
-const SYS_NITI = {     // key kept as "niti" purely for tab data attribute compatibility
-  key: 'niti',
-  name: 'Iron–Carbon (steel eutectoid)',
-  elements: ['Fe', 'C'],
+const SYS_FEC = {
+  key: 'fec',
+  name: 'Iron–Carbon',
+  elements: ['Fe', 'Fe₃C'],
   xLabel: 'Composition (wt% C)',
   yLabel: 'Temperature (°C)',
-  xMin: 0, xMax: 2.14,
-  yMin: 400, yMax: 1100,
+  xMin: 0, xMax: 6.7,
+  yMin: 400, yMax: 1600,
   reactionType: 'eutectoid',
-  eutectoid: { c: 0.76, T: 727, cAlpha: 0.022, cFe3C: 6.7 },
+  hasInvariantToggle: true,
 
-  // α / (α+γ) boundary — textbook A3 line on the α side: (0, 912) → (0.022, 727).
-  // Concave-up: nearly vertical at high T, bends to flatten as it approaches the eutectoid.
-  alphaGamma: [
-    {x:0,     y:912}, {x:0.003, y:880}, {x:0.006, y:842}, {x:0.010, y:798},
-    {x:0.013, y:768}, {x:0.016, y:750}, {x:0.019, y:736}, {x:0.022, y:727}
-  ],
-  // γ / (α+γ) boundary (A3 line on the γ side) — smooth concave drop (0, 912) → (0.76, 727)
-  gammaAlpha: [
-    {x:0,    y:912}, {x:0.05, y:892}, {x:0.10, y:875}, {x:0.15, y:858},
-    {x:0.20, y:842}, {x:0.25, y:827}, {x:0.30, y:812}, {x:0.35, y:800},
-    {x:0.40, y:788}, {x:0.45, y:777}, {x:0.50, y:768}, {x:0.55, y:759},
-    {x:0.60, y:751}, {x:0.65, y:743}, {x:0.70, y:735}, {x:0.76, y:727}
-  ],
-  // Acm — γ / (γ+Fe₃C) — from eutectoid (0.76, 727) up to (2.14, 1147), smooth slope.
-  acm: [
-    {x:0.76, y:727}, {x:0.85, y:760}, {x:0.95, y:792}, {x:1.05, y:828},
-    {x:1.15, y:862}, {x:1.25, y:898}, {x:1.40, y:950}, {x:1.55, y:1000},
-    {x:1.70, y:1045}, {x:1.85, y:1088}, {x:2.00, y:1122}, {x:2.14, y:1147}
-  ],
-  // α-solvus below 727 °C — sharp drop in carbon solubility, nearly vertical.
-  // Stored x-ascending (required by the interp helper).
-  alphaSolvus: [
-    {x:0.001, y:400}, {x:0.002, y:410}, {x:0.005, y:440}, {x:0.009, y:490},
-    {x:0.013, y:550}, {x:0.017, y:620}, {x:0.020, y:680}, {x:0.022, y:727}
-  ],
+  /* Invariant points — cAlpha uses 0.11 (MATLAB visual exaggeration of the true 0.022)
+     so the α-grain rank threshold is continuous through the 727 °C eutectoid. */
+  eutectoid:  { c: 0.76, T: 727,  cAlpha: 0.11, cFe3C: 6.7 },
+  eutectic:   { c: 4.30, T: 1147, cGamma: 2.14, cFe3C: 6.7 },
+  peritectic: { c: 0.17, T: 1493, cL:     0.53, cDelta: 0.09 },
+
+  /* Liquidus curves (MATLAB straight segments) */
+  liquidus_delta: [{x:0,    y:1538}, {x:0.53, y:1493}],  // L liquidus, δ side
+  liquidus_main:  [{x:0.53, y:1493}, {x:4.30, y:1147}],  // L liquidus, peritectic → eutectic
+  liquidus_fec:   [{x:4.30, y:1147}, {x:6.7,  y:1250}],  // L+Fe₃C liquidus (drawn dashed in MATLAB)
+
+  /* Solidus curves */
+  delta_solidus:  [{x:0,    y:1538}, {x:0.09, y:1493}],  // δ-solidus, top of δ-loop
+  delta_gamma:    [{x:0,    y:1394}, {x:0.17, y:1493}],  // δ→γ boundary, bottom of δ-loop
+  gamma_solidus:  [{x:0.17, y:1493}, {x:2.14, y:1147}],  // γ-solidus, peritectic → eutectic
+
+  /* Sub-eutectoid boundaries (MATLAB uses C_alpha_max*5 = 0.11 for visibility) */
+  alphaGamma: [{x:0,     y:912}, {x:0.11, y:727}],   // α/(α+γ) — MATLAB exaggerated 0.11
+  gammaAlpha: [{x:0,     y:912}, {x:0.76, y:727}],   // γ/(α+γ) = A3 line
+  acm:        [{x:0.76,  y:727}, {x:2.14, y:1147}], // Acm line
+  alphaSolvus:[{x:0,     y:400}, {x:0.11, y:727}],  // α/(α+Fe₃C) below 727 (MATLAB exaggerated)
+
   default: { c: 0.76, T: 1000 },
-  phaseLegend: ['γ', 'α', 'Fe3C'],
-  // Zoomed view to make the otherwise-invisible α single-phase region visible
-  zoomBounds: { xMin: 0, xMax: 0.05, yMin: 400, yMax: 950 },
-  zoomDefault: { c: 0.012, T: 700 },
+  phaseLegend: ['L', 'δ', 'γ', 'α', 'Fe3C'],
+  /* Two separate low-C zoom modes — one for the δ-loop / peritectic at high T,
+     one for the α / α+γ / eutectoid at low T. */
+  zoomModes: {
+    high: {
+      label: 'Zoom: low-C, high-T',
+      bounds:  { xMin: 0, xMax: 0.6, yMin: 1300, yMax: 1560 },
+      default: { c: 0.1, T: 1450 }
+    },
+    low: {
+      label: 'Zoom: low-C, low-T',
+      bounds:  { xMin: 0, xMax: 0.4, yMin: 400, yMax: 950 },
+      default: { c: 0.05, T: 700 }
+    }
+  },
+
+  invariantPoints: [
+    { c: 0.17, T: 1493, kind: 'Peritectic', desc: 'L + δ → γ  (1493 °C)' },
+    { c: 4.30, T: 1147, kind: 'Eutectic',   desc: 'L → γ + Fe₃C  (1147 °C, ledeburite)' },
+    { c: 0.76, T: 727,  kind: 'Eutectoid',  desc: 'γ → α + Fe₃C  (727 °C, pearlite)' }
+  ],
 };
 
-SYS_NITI.getRegions = function() {
+SYS_FEC.getRegions = function() {
   const sys = this;
-  const eut = sys.eutectoid;
+  const eutd = sys.eutectoid;
+  const eutc = sys.eutectic;
   return [
+    // 1. L — above all liquidus curves
     {
-      name: 'γ', color: PHASE_HEX['γ'],
+      name: 'L', color: PHASE_HEX['L'],
       verts: regionVerts([
         ['point', sys.xMin, sys.yMax],
-        ['point', sys.xMin, 912],
-        ['curve', sys.gammaAlpha, false],
-        ['curve', sys.acm, false],
+        ['point', sys.xMin, 1538],
+        ['curve', sys.liquidus_delta, false],
+        ['curve', sys.liquidus_main,  false],
+        ['curve', sys.liquidus_fec,   false],
         ['point', sys.xMax, sys.yMax]
       ])
     },
+    // 2. δ — small loop at top-left between δ-solidus, δ→γ boundary and pure Fe axis
     {
-      name: 'α', color: PHASE_HEX['α'], smallFont: true,
+      name: 'δ', color: PHASE_HEX['δ'], smallFont: true,
       verts: regionVerts([
-        ['point', sys.xMin, sys.yMin],
-        ['point', sys.xMin, 912],
-        ['curve', sys.alphaGamma, false],
-        ['curve', sys.alphaSolvus, true]    // (0.022, 727) → (0.001, 400)
+        ['point', 0,    1538],
+        ['curve', sys.delta_solidus, false],   // (0,1538) → (0.09,1493)
+        ['point', 0.17, 1493],                  // across peritectic isotherm
+        ['curve', sys.delta_gamma, true],       // (0.17,1493) → (0,1394)
+        ['point', 0,    1394]
       ])
     },
+    // 3. δ + L — between δ-solidus and δ-liquidus, above peritectic
+    //   Tiny region: place the label just outside the top-right corner with an
+    //   arrow pointing into the centroid so the text doesn't overflow the wedge.
     {
-      name: 'α + γ', color: '#dde8b8',
+      name: 'δ + L', color: '#e6d2f0',
+      labelPos: { x: 0.75, y: 1525 },
       verts: regionVerts([
-        ['curve', sys.alphaGamma, false],   // (0, 912) → (0.022, 727)
-        ['point', eut.c, eut.T],            // (0.76, 727)
-        ['curve', sys.gammaAlpha, true]     // (0.76, 727) → (0, 912)
+        ['curve', sys.delta_solidus, false],   // (0,1538) → (0.09,1493)
+        ['point', 0.53, 1493],                  // along peritectic
+        ['curve', sys.liquidus_delta, true]     // (0.53,1493) → (0,1538)
       ])
     },
+    // 4. γ (Austenite) — large region, below A3 (top-left), above 727 / eutectic, bounded by γ-solidus / δ→γ on top
+    {
+      name: 'γ', color: PHASE_HEX['γ'],
+      verts: regionVerts([
+        ['point', 0, 912],
+        ['point', 0, 1394],
+        ['curve', sys.delta_gamma,   false],   // (0,1394) → (0.17,1493)
+        ['curve', sys.gamma_solidus, false],   // (0.17,1493) → (2.14,1147)
+        ['point', eutd.c, eutd.T],              // (0.76, 727)
+        ['curve', sys.gammaAlpha, true]         // (0.76,727) → (0,912)
+      ])
+    },
+    // 5. γ + L — between γ-solidus (left/top) and liquidus_main (right/top), above eutectic
+    {
+      name: 'γ + L', color: '#dde8b8', rotate: true,
+      verts: regionVerts([
+        ['curve', sys.gamma_solidus, false],   // (0.17,1493) → (2.14,1147)
+        ['point', eutc.c, eutc.T],              // (4.30, 1147)
+        ['curve', sys.liquidus_main, true]      // (4.30,1147) → (0.53,1493)
+      ])
+    },
+    // 6. L + Fe₃C — small triangle below the dashed liquidus, above 1147, left of cementite (6.7)
+    {
+      name: 'L + Fe₃C', color: '#d8c4f0', rotate: true, smallFont: true,
+      verts: regionVerts([
+        ['curve', sys.liquidus_fec, false],     // (4.30,1147) → (6.7,1250)
+        ['point', sys.xMax, 1147],              // (6.7, 1147) — down cementite
+        ['point', eutc.c,  eutc.T]              // (4.30, 1147) — close along eutectic
+      ])
+    },
+    // 7. γ + Fe₃C — above 727, below Acm, between 0.76 and cementite at 6.7
     {
       name: 'γ + Fe₃C', color: '#d8c8e0',
       verts: regionVerts([
-        ['curve', sys.acm, false],          // (0.76, 727) → (2.14, 1147)
-        ['point', sys.xMax, eut.T],         // (2.14, 727)
-        ['point', eut.c, eut.T]             // (0.76, 727)
+        ['curve', sys.acm, false],              // (0.76,727) → (2.14,1147)
+        ['point', sys.xMax, 1147],              // (6.7, 1147)
+        ['point', sys.xMax, eutd.T],            // (6.7, 727)
+        ['point', eutd.c,  eutd.T]              // (0.76, 727)
       ])
     },
+    // 8. α (Ferrite) — small region at left, below 912, above α-solvus
+    {
+      name: 'α', color: PHASE_HEX['α'], smallFont: true,
+      verts: regionVerts([
+        ['point', 0, sys.yMin],
+        ['point', 0, 912],
+        ['curve', sys.alphaGamma,  false],     // (0,912) → (0.11,727)
+        ['curve', sys.alphaSolvus, true]       // (0.11,727) → (0,400)
+      ])
+    },
+    // 9. α + γ — between A3 line and α/(α+γ) boundary, above 727
+    {
+      name: 'α + γ', color: '#dde8b8', smallFont: true,
+      verts: regionVerts([
+        ['curve', sys.alphaGamma, false],      // (0,912) → (0.11,727)
+        ['point', eutd.c, eutd.T],              // (0.76, 727)
+        ['curve', sys.gammaAlpha, true]         // (0.76,727) → (0,912)
+      ])
+    },
+    // 10. α + Fe₃C — below 727, right of α-solvus, left of cementite
     {
       name: 'α + Fe₃C', color: '#ecd8c8',
       verts: regionVerts([
-        ['curve', sys.alphaSolvus, true],   // (0.022, 727) → (0.001, 400)
-        ['point', sys.xMax, sys.yMin],
-        ['point', sys.xMax, eut.T],
-        ['point', eut.cAlpha, eut.T]
+        ['curve', sys.alphaSolvus, false],     // (0,400) → (0.11,727)
+        ['point', sys.xMax, eutd.T],            // (6.7, 727)
+        ['point', sys.xMax, sys.yMin]           // (6.7, 400)
       ])
     }
   ];
 };
+SYS_FEC.regionFills = function(ctx, toPx) {
+  for (const r of this.getRegions()) fillPolyVerts(ctx, r.verts, r.color, toPx);
+};
+
+SYS_FEC.drawBoundaries = function(ctx, toPx) {
+  const sys = SYS_FEC;
+  const eutd = sys.eutectoid;
+  const eutc = sys.eutectic;
+  // Liquidus curves
+  drawCurve(ctx, sys.liquidus_delta, toPx, '#333', 1.8);
+  drawCurve(ctx, sys.liquidus_main,  toPx, '#333', 1.8);
+  // L+Fe₃C liquidus drawn dashed (matches MATLAB `k--`)
+  ctx.strokeStyle = '#333';
+  ctx.lineWidth = 1.8;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(...toPx(sys.liquidus_fec[0].x, sys.liquidus_fec[0].y));
+  ctx.lineTo(...toPx(sys.liquidus_fec[1].x, sys.liquidus_fec[1].y));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  // Solidus and δ-loop boundaries
+  drawCurve(ctx, sys.delta_solidus, toPx, '#333', 1.8);
+  drawCurve(ctx, sys.delta_gamma,   toPx, '#333', 1.8);
+  drawCurve(ctx, sys.gamma_solidus, toPx, '#333', 1.8);
+  // Sub-eutectoid lines
+  drawCurve(ctx, sys.alphaGamma,    toPx, '#333', 1.8);
+  drawCurve(ctx, sys.gammaAlpha,    toPx, '#333', 1.8);
+  drawCurve(ctx, sys.acm,           toPx, '#333', 1.8);
+  drawCurve(ctx, sys.alphaSolvus,   toPx, '#333', 1.4);
+  // Horizontal invariant isotherms
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.8;
+  // Peritectic at 1493
+  ctx.beginPath();
+  ctx.moveTo(...toPx(sys.peritectic.cDelta, sys.peritectic.T));
+  ctx.lineTo(...toPx(sys.peritectic.cL,     sys.peritectic.T));
+  ctx.stroke();
+  // Eutectic at 1147
+  ctx.beginPath();
+  ctx.moveTo(...toPx(eutc.cGamma, eutc.T));
+  ctx.lineTo(...toPx(sys.xMax,    eutc.T));
+  ctx.stroke();
+  // Eutectoid at 727 — from α boundary (exaggerated 0.11) to cementite
+  ctx.beginPath();
+  ctx.moveTo(...toPx(0.11, eutd.T));
+  ctx.lineTo(...toPx(sys.xMax, eutd.T));
+  ctx.stroke();
+  // Cementite vertical at x = 6.7
+  ctx.beginPath();
+  ctx.moveTo(...toPx(sys.xMax, sys.yMin));
+  ctx.lineTo(...toPx(sys.xMax, 1250));
+  ctx.stroke();
+  // Invariant points — visible only when the toggle is on
+  if (showInvariantPoints) {
+    for (const p of sys.invariantPoints) {
+      drawInvariantPointMarker(ctx, toPx(p.c, p.T), p.kind);
+    }
+  }
+};
+
+SYS_FEC.regionLabels = function(ctx, toPx) {
+  drawRegionLabels(ctx, toPx, this);
+};
+
+SYS_FEC.getState = function(c, T) {
+  const sys = SYS_FEC;
+  const eutd = sys.eutectoid;
+  const eutc = sys.eutectic;
+  const peri = sys.peritectic;
+
+  // Determine liquidus at composition c
+  let liqT;
+  if (c <= 0.53) liqT = interp(sys.liquidus_delta, c);
+  else if (c <= 4.30) liqT = interp(sys.liquidus_main, c);
+  else liqT = interp(sys.liquidus_fec, c);
+
+  // 1) Liquid
+  if (T >= liqT) {
+    return {
+      regionLabel:'Liquid', stageTitle:'Single phase — Liquid',
+      stageDesc:'Above the liquidus: fully molten Fe–C alloy.',
+      phases:[{name:'L',frac:1,seg:'seg-L'}],
+      tieLine:null, reactionEqn:'',
+      activePhases:['L'], grainStates:{mode:'allLiquid'}
+    };
+  }
+
+  // 2) Above peritectic (T >= 1493): δ, δ+L
+  if (T >= peri.T) {
+    if (c <= peri.cDelta) {
+      // δ side — check vs δ-solidus
+      const dsT = interp(sys.delta_solidus, c);  // δ-solidus at c
+      if (T <= dsT) {
+        return fecSingle('δ', 'δ — Ferrite (BCC, high-T)',
+          'Single δ-ferrite phase. Stable from 1394 °C to 1538 °C in pure Fe; the δ-loop shrinks with added C.');
+      }
+      // δ + L (between δ-solidus and L) — lever rule: wL = (c - xD)/(xL - xD)
+      const xL = interpInverse(sys.liquidus_delta, T);
+      const xD = interpInverse(sys.delta_solidus, T);
+      const wL = Math.max(0, Math.min(1, (c - xD)/(xL - xD)));
+      const wD = 1 - wL;
+      return fecDeltaL(T, xD, xL, wD, wL);
+    }
+    if (c <= peri.cL) {
+      // δ + L for c in (0.09, 0.53] above peritectic.  Both endpoints track the
+      // actual phase boundaries at this T: xD on δ-solidus (retreats from 0.09 at
+      // 1493 °C toward 0 at 1538 °C); xL on liquidus_delta (retreats from 0.53 at
+      // 1493 °C toward 0 at 1538 °C).  Previously xD was clamped to 0.09, so the
+      // tie line stopped short of the lower-c δ-side at higher T.
+      const xL = interpInverse(sys.liquidus_delta, T);
+      const xD = interpInverse(sys.delta_solidus, T);
+      const wL = Math.max(0, Math.min(1, (c - xD)/(xL - xD)));
+      const wD = 1 - wL;
+      return fecDeltaL(T, xD, xL, wD, wL);
+    }
+  }
+
+  // 3) Between peritectic and eutectic (1147 <= T < 1493): γ, δ, γ+L, L+Fe₃C
+  if (T >= eutc.T && T < peri.T) {
+    if (c < peri.c) {
+      // c < 0.17 (within the δ-loop's x-range below the peritectic isotherm):
+      //   above δ→γ boundary → δ (inside δ-loop);
+      //   below δ→γ boundary → γ single phase.
+      const gaT = interp(sys.delta_gamma, c);
+      if (T < gaT) {
+        return fecSingle('γ', 'γ — Austenite (FCC)',
+          'Single FCC austenite, below the δ→γ transus.');
+      }
+      return fecSingle('δ', 'δ — Ferrite (BCC, high-T)',
+        'Inside the δ-loop (below the peritectic isotherm).');
+    }
+    if (c <= 2.14) {
+      // c in [0.17, 2.14]: γ (below γ-solidus) or γ+L (above γ-solidus)
+      const solT = interp(sys.gamma_solidus, c);
+      if (T <= solT) {
+        return fecSingle('γ', 'γ — Austenite (FCC)',
+          'Single γ austenite. Carbon dissolved interstitially in the FCC lattice.');
+      }
+      // γ + L
+      const xL = interpInverse(sys.liquidus_main, T);
+      const xG = interpInverse(sys.gamma_solidus, T);
+      const wL = Math.max(0, Math.min(1, (c - xG)/(xL - xG)));
+      const wG = 1 - wL;
+      return fecGammaL(T, xG, xL, wG, wL);
+    }
+    if (c <= 4.30) {
+      // γ + L on the right side. The γ-side tie-line endpoint tracks the
+      // γ-solidus curve at this T (clamped to its 2.14 endpoint at the eutectic
+      // isotherm); the L-side tracks liquidus_main.
+      const xL = interpInverse(sys.liquidus_main, T);
+      const xG = interpInverse(sys.gamma_solidus, T);
+      const wL = Math.max(0, Math.min(1, (c - xG)/(xL - xG)));
+      const wG = 1 - wL;
+      return fecGammaL(T, xG, xL, wG, wL);
+    }
+    // c > 4.30: L + Fe₃C
+    const xL = interpInverse(sys.liquidus_fec, T);
+    const xF = eutc.cFe3C;
+    const wF = Math.max(0, Math.min(1, (c - xL)/(xF - xL)));
+    const wL = 1 - wF;
+    return {
+      regionLabel:'L + Fe₃C', stageTitle:'Two-phase — L + Fe₃C',
+      stageDesc:'Pro-eutectic cementite (Fe₃C) crystallises from the high-carbon melt; the liquid moves down the L+Fe₃C liquidus toward the eutectic.',
+      phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+      tieLine:{T:T, ends:[{name:'L',c:xL},{name:'Fe₃C',c:xF}]},
+      reactionEqn:'',
+      activePhases:['L','Fe3C'],
+      grainStates:{mode:'isolatedBlobs', blobPhase:'Fe3C', bgPhase:'L', solidFraction:wF}
+    };
+  }
+
+  // 4) Below eutectic, above eutectoid (727 <= T < 1147): γ, γ+Fe₃C, α+γ, α
+  if (T >= eutd.T) {
+    const cAlphaBoundary = 0.11;  // MATLAB exaggerated value for visualization
+    if (c < cAlphaBoundary) {
+      // Could be α, α+γ, or γ
+      const agT = interp(sys.alphaGamma, c);
+      const gaT = interp(sys.gammaAlpha, c);
+      if (T >= gaT) return fecSingle('γ', 'γ — Austenite (FCC)',
+        'Single FCC austenite. Carbon in interstitial solid solution.');
+      if (T <= agT) return fecSingle('α', 'α — Ferrite (BCC)',
+        'Single BCC ferrite. Very low C content.');
+      // α + γ
+      const cA = interpInverse(sys.alphaGamma, T);
+      const cG = interpInverse(sys.gammaAlpha, T);
+      const wA = Math.max(0, Math.min(1, (cG - c)/(cG - cA)));
+      const wG = 1 - wA;
+      return fecAlphaGamma(T, cA, cG, wA, wG);
+    }
+    if (c <= eutd.c) {
+      // c in [0.11, 0.76], above 727: γ or α+γ
+      const gaT = interp(sys.gammaAlpha, c);
+      if (T >= gaT) return fecSingle('γ', 'γ — Austenite (FCC)', 'Single FCC austenite.');
+      // α composition tracks the α/(α+γ) boundary at this T (not the fixed 0.11 eutectoid value)
+      const cA = interpInverse(sys.alphaGamma, T);
+      const cG = interpInverse(sys.gammaAlpha, T);
+      const wA = Math.max(0, Math.min(1, (cG - c)/(cG - cA)));
+      const wG = 1 - wA;
+      return fecAlphaGamma(T, cA, cG, wA, wG);
+    }
+    if (c <= eutc.cGamma) {
+      // c in [0.76, 2.14]: γ or γ+Fe₃C
+      const acmT = interp(sys.acm, c);
+      if (T >= acmT) return fecSingle('γ', 'γ — Austenite (FCC)', 'Single FCC austenite.');
+      const cG = interpInverse(sys.acm, T);
+      const cF = eutd.cFe3C;
+      const wG = Math.max(0, Math.min(1, (cF - c)/(cF - cG)));
+      const wF = 1 - wG;
+      return fecGammaFe3C(T, cG, cF, wG, wF);
+    }
+    // c > 2.14, T in [727, 1147]: post-eutectic γ + Fe₃C (cast iron above 727)
+    // The γ-side tie-line endpoint tracks the Acm curve (γ saturates with C as T drops);
+    // Acm runs from (0.76 wt%, 727 °C) → (2.14 wt%, 1147 °C).  Without this the cG
+    // would be pinned at 2.14 and the tie line would never extend to lower C below 1147.
+    const cG = interpInverse(sys.acm, T);
+    const cF = eutd.cFe3C;
+    const wG = Math.max(0, Math.min(1, (cF - c)/(cF - cG)));
+    const wF = 1 - wG;
+    // Pro-eutectic phase fraction is LOCKED at the value reached just before the
+    // eutectic reaction at 1147 °C (where γ = 2.14 % C, Fe₃C = 6.7 % C).  Below
+    // 1147 °C, total wG and wF continue to evolve via Acm, but the pro-eutectic
+    // mass that solidified above 1147 °C does not.
+    let proEut, proFrac;
+    if (c < eutc.c) {
+      proEut = 'γ';
+      proFrac = (eutc.c - c) / (eutc.c - eutc.cGamma);
+    } else if (c > eutc.c) {
+      proEut = 'Fe3C';
+      proFrac = (c - eutc.c) / (cF - eutc.c);
+    } else {
+      proEut = null;
+      proFrac = 0;
+    }
+    proFrac = Math.max(0, Math.min(1, proFrac));
+    const eutFrac = 1 - proFrac;
+    return {
+      regionLabel:'γ + Fe₃C',
+      stageTitle: proEut === null
+        ? 'Eutectic cast iron — pure ledeburite (γ + Fe₃C, Fe₃C-matrix with γ islands)'
+        : `${proEut === 'γ' ? 'Hypoeutectic' : 'Hypereutectic'} cast iron — pro-eutectic ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} + ledeburite`,
+      stageDesc: proEut === null
+        ? 'At 4.30 % C, the entire melt transforms isothermally to ledeburite — a continuous bright-white Fe₃C network with dark-gray austenite (γ) islands embedded inside (the "pebbles in a river of ice" microstructure).'
+        : `Pro-eutectic ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} grains formed above 1147 °C; the remaining liquid crystallised as ledeburite (Fe₃C matrix with γ islands).`,
+      phases:[{name:'γ',frac:wG,seg:'seg-gamma'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+      tieLine:{T:T, ends:[{name:'γ',c:cG},{name:'Fe₃C',c:cF}]},
+      reactionEqn:'<b>Eutectic at 1147 °C:</b>  L (4.30 % C) → γ (2.14 %) + Fe₃C (6.7 %) — ledeburite (Fe₃C-matrix + γ islands)',
+      activePhases:['γ','Fe3C'],
+      // Ledeburite I render: each cell has Fe₃C as the outer matrix (band) and a
+      // γ-rich island core.  Pro-eutectic γ cells appear as larger γ blobs (still
+      // bordered by an Fe₃C film along the original eutectic boundary).
+      grainStates: proEut === null
+        ? {mode:'ledeburite', proEut:null, proFrac:0, eutFrac:1, ledIslandPhase:'γ', wFe3C: wF, T_phase: 'high'}
+        : {mode:'ledeburite', proEut, proFrac, eutFrac, ledIslandPhase:'γ', wFe3C: wF, T_phase: 'high'}
+    };
+  }
+
+  // 5) Below eutectoid (T < 727): α, α + Fe₃C (steel), or cast iron
+  // The α-solvus shrinks with falling T (from 0.11 wt% at 727 °C → 0 at 400 °C),
+  // so the α composition at the tie line tracks the curve, not the fixed 0.11.
+  const cA_T = interpInverse(sys.alphaSolvus, T);     // α-solvus at current T
+  if (c <= cA_T) {
+    return fecSingle('α', 'α — Ferrite (BCC)',
+      'Within the α-solvus. C is fully in interstitial solid solution; single BCC ferrite.');
+  }
+  const cA = cA_T;                                     // tie-line endpoint for α
+  const cA_eutd = eutd.cAlpha;                         // α composition at the eutectoid (fixed)
+  const cF = eutd.cFe3C;
+  const wA = Math.max(0, Math.min(1, (cF - c)/(cF - cA)));
+  const wF = 1 - wA;
+
+  if (c <= eutc.cGamma) {
+    // Steel range (c ≤ 2.14): pro-eutectoid band preserved + pearlite (lamellar) core
+    let proEut, proFrac;
+    if (c < eutd.c) {
+      proEut = 'α';
+      // Pro-eutectoid α fraction is fixed by the eutectoid reaction (0.11 / 0.76)
+      proFrac = (eutd.c - c) / (eutd.c - cA_eutd);
+    } else if (c > eutd.c) {
+      proEut = 'Fe3C';
+      proFrac = (c - eutd.c) / (cF - eutd.c);
+    } else {
+      proEut = null; proFrac = 0;
+    }
+    proFrac = Math.max(0, Math.min(1, proFrac));
+    return {
+      regionLabel:'α + Fe₃C',
+      stageTitle: proEut === null
+        ? 'Eutectoid steel — fully pearlite'
+        : `${proEut === 'α' ? 'Hypoeutectoid' : 'Hypereutectoid'} steel — pro-eutectoid ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} (at original γ boundaries) + pearlite cores`,
+      stageDesc: proEut === null
+        ? 'At 0.76 wt% C the entire γ decomposes to α + Fe₃C lamellae (pearlite) in one isothermal reaction.'
+        : `The pro-eutectoid ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} film that grew along γ grain boundaries above 727 °C is preserved; the γ cores have now decomposed to lamellar pearlite (α + Fe₃C).`,
+      phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+      tieLine:{T:T, ends:[{name:'α',c:cA},{name:'Fe₃C',c:cF}]},
+      reactionEqn:'<b>Eutectoid at 727 °C:</b>  γ → α + Fe₃C (pearlite)',
+      activePhases:['α','Fe3C'],
+      grainStates: proEut === null
+        // pure pearlite — no preserved band; render as lamellar everywhere
+        ? {mode:'boundaryBand', bandPhase:'α', corePhase:null, coreIsLamellar:true, coreLamA:'α', coreLamB:'Fe3C', bandFraction:0}
+        : {mode:'boundaryBand', bandPhase:proEut, coreIsLamellar:true, coreLamA:'α', coreLamB:'Fe3C', bandFraction:proFrac}
+    };
+  }
+
+  // Cast iron range (c > 2.14) below 727 — transformed ledeburite (Ledeburite II).
+  //   Fe₃C matrix stays intact; γ islands in ledeburite decompose to pearlite (α+Fe₃C lamellae).
+  //   Pro-eutectic Fe₃C grains stay solid; pro-eutectic γ grains transform to pearlite blobs.
+  let proEutCI, proFracCI;
+  if (c < eutc.c) {
+    proEutCI = 'γ→pearlite';
+    proFracCI = (eutc.c - c) / (eutc.c - eutc.cGamma);
+  } else if (c > eutc.c) {
+    proEutCI = 'Fe3C';
+    proFracCI = (c - eutc.c) / (cF - eutc.c);
+  } else {
+    proEutCI = null;
+    proFracCI = 0;
+  }
+  proFracCI = Math.max(0, Math.min(1, proFracCI));
+  return {
+    regionLabel:'α + Fe₃C',
+    stageTitle: proEutCI === null
+      ? 'Eutectic cast iron below 727 °C — transformed ledeburite (Fe₃C network + pearlite islands)'
+      : `${c < eutc.c ? 'Hypoeutectic' : 'Hypereutectic'} cast iron — pro-eutectic ${proEutCI === 'Fe3C' ? 'Fe₃C' : 'γ → pearlite'} + transformed ledeburite`,
+    stageDesc: proEutCI === null
+      ? 'Below 727 °C the bright-white Fe₃C network stays unchanged, but the γ islands inside ledeburite decompose to lamellar pearlite (α + Fe₃C). The geometry of the islands is preserved, but they now look like striped fingerprints rather than smooth grey pebbles.'
+      : `Below 727 °C: the Fe₃C matrix is preserved. ${c < eutc.c ? 'Pro-eutectic γ blobs and the γ islands inside ledeburite both decompose to pearlite.' : 'Pro-eutectic Fe₃C grains remain; only the γ islands inside ledeburite transform to pearlite.'}`,
+    phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+    tieLine:{T:T, ends:[{name:'α',c:cA},{name:'Fe₃C',c:cF}]},
+    reactionEqn:'<b>Eutectoid at 727 °C:</b>  γ → α + Fe₃C — γ islands inside ledeburite turn into pearlite; the Fe₃C matrix is unchanged.',
+    activePhases:['α','Fe3C'],
+    grainStates:{mode:'ledeburite', proEut: proEutCI, proFrac: proFracCI, eutFrac: 1 - proFracCI, ledIslandPhase:'pearlite', wFe3C: wF, T_phase:'low'}
+  };
+};
+
+function fecSingle(ph, title, desc) {
+  const segMap = { 'L':'seg-L', 'α':'seg-alpha', 'γ':'seg-gamma', 'δ':'seg-delta', 'Fe₃C':'seg-fe3c' };
+  const stateKey = ph === 'Fe₃C' ? 'Fe3C' : ph;
+  return {
+    regionLabel: ph, stageTitle: title, stageDesc: desc,
+    phases:[{name:ph, frac:1, seg: segMap[ph] || 'seg-alpha'}],
+    tieLine:null, reactionEqn:'',
+    activePhases:[stateKey],
+    grainStates:{mode:'allSolid', phase: stateKey}
+  };
+}
+function fecDeltaL(T, xD, xL, wD, wL) {
+  return {
+    regionLabel:'δ + L', stageTitle:'Two-phase — δ + L',
+    stageDesc:'Pro-peritectic δ-ferrite coexists with melt. On cooling through 1493 °C the peritectic reaction L + δ → γ produces austenite.',
+    phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'δ',frac:wD,seg:'seg-delta'}],
+    tieLine:{T:T, ends:[{name:'δ',c:xD},{name:'L',c:xL}]},
+    reactionEqn:'<b>Peritectic at 1493 °C:</b>  L (0.53 % C) + δ (0.09 %) → γ (0.17 %)',
+    activePhases:['L','δ'],
+    grainStates:{mode:'isolatedBlobs', blobPhase:'δ', bgPhase:'L', solidFraction:wD}
+  };
+}
+function fecGammaL(T, xG, xL, wG, wL) {
+  return {
+    regionLabel:'γ + L', stageTitle:'Two-phase — γ + L',
+    stageDesc:'Pro-eutectic γ (austenite) crystallises from the melt; the remaining liquid enriches in C along the liquidus toward the eutectic at 1147 °C.',
+    phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+    tieLine:{T:T, ends:[{name:'L',c:xL},{name:'γ',c:xG}]},
+    reactionEqn:'',
+    activePhases:['L','γ'],
+    grainStates:{mode:'isolatedBlobs', blobPhase:'γ', bgPhase:'L', solidFraction:wG}
+  };
+}
+function fecAlphaGamma(T, cA, cG, wA, wG) {
+  return {
+    regionLabel:'α + γ', stageTitle:'Two-phase — α + γ',
+    stageDesc:'Pro-eutectoid ferrite (α) nucleates on the austenite grain boundaries; α grows as a film around each γ core. γ enriches in C toward the eutectoid composition.',
+    phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+    tieLine:{T:T, ends:[{name:'α',c:cA},{name:'γ',c:cG}]},
+    reactionEqn:'',
+    activePhases:['α','γ'],
+    // α appears as a film along original γ grain boundaries; γ remains in the cell cores
+    grainStates:{mode:'boundaryBand', bandPhase:'α', corePhase:'γ', bandFraction:wA}
+  };
+}
+function fecGammaFe3C(T, cG, cF, wG, wF) {
+  return {
+    regionLabel:'γ + Fe₃C', stageTitle:'Two-phase — γ + Fe₃C',
+    stageDesc:'Pro-eutectoid Fe₃C precipitates on the austenite grain boundaries; the cementite film grows around each γ core. γ depletes in C toward the eutectoid composition.',
+    phases:[{name:'γ',frac:wG,seg:'seg-gamma'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
+    tieLine:{T:T, ends:[{name:'γ',c:cG},{name:'Fe₃C',c:cF}]},
+    reactionEqn:'',
+    activePhases:['γ','Fe3C'],
+    grainStates:{mode:'boundaryBand', bandPhase:'Fe3C', corePhase:'γ', bandFraction:wF}
+  };
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   SYSTEM 4: Ni–Ti  (complex congruent-melting + multi-invariant)
+   Curves and invariants follow the MATLAB construction (20 → 70 wt% Ti).
+   ──────────────────────────────────────────────────────────────────── */
+const SYS_NITI = {
+  key: 'niti',
+  name: 'Ni–Ti',
+  elements: ['Ni', 'Ti'],
+  xLabel: 'Composition (wt% Ti)',
+  yLabel: 'Temperature (°C)',
+  xMin: 20, xMax: 60,
+  yMin: 900, yMax: 1500,
+  reactionType: 'complex',
+  hasInvariantToggle: true,
+
+  /* ─── liquidus / solidus curves (5 segments from MATLAB) ─── */
+  // Curve 1 — β + L liquidus (far left): (20, 1385) → (33.5, 1125)
+  liqBetaL: [
+    {x:20.0, y:1385}, {x:21.5, y:1383}, {x:23.0, y:1380}, {x:24.5, y:1373},
+    {x:26.0, y:1362}, {x:27.5, y:1345}, {x:28.5, y:1328}, {x:29.5, y:1310},
+    {x:30.5, y:1285}, {x:31.5, y:1250}, {x:32.5, y:1200}, {x:33.5, y:1125}
+  ],
+  // Curve 2 — γ + L liquidus (left hump): (33.5, 1125) → (44.9, 1310)
+  liqGammaLeft: [
+    {x:33.5, y:1125}, {x:34.2, y:1150}, {x:35.0, y:1180}, {x:36.0, y:1215},
+    {x:37.5, y:1250}, {x:39.0, y:1275}, {x:40.5, y:1292}, {x:42.0, y:1302},
+    {x:43.0, y:1307}, {x:44.0, y:1309.5}, {x:44.9, y:1310}
+  ],
+  // Curve 3 — γ + L solidus (left hump interior): (37.5, 1125) → (44.9, 1310)
+  solGammaLeft: [
+    {x:37.5, y:1125}, {x:38.2, y:1155}, {x:39.0, y:1190}, {x:40.0, y:1225},
+    {x:41.0, y:1250}, {x:41.8, y:1268}, {x:42.5, y:1282}, {x:43.2, y:1293},
+    {x:43.8, y:1300}, {x:44.5, y:1307}, {x:44.9, y:1310}
+  ],
+  // Curve 4 — γ + L liquidus (right hump): (44.9, 1310) → (62.5, 985)
+  liqGammaRight: [
+    {x:44.9, y:1310}, {x:46.0, y:1308}, {x:48.0, y:1300}, {x:50.0, y:1285},
+    {x:52.0, y:1260}, {x:54.0, y:1225}, {x:56.0, y:1175}, {x:58.0, y:1105},
+    {x:59.5, y:1050}, {x:61.0, y:1005}, {x:62.5, y:985}
+  ],
+  // Curve 5 — Liquidus / solidus tail (far right): (62.5, 985) → (70, 955)
+  liqDelta: [
+    {x:62.5, y:985}, {x:63.5, y:983}, {x:64.5, y:981}, {x:65.5, y:978},
+    {x:66.5, y:974}, {x:67.5, y:968}, {x:68.5, y:962}, {x:69.2, y:958},
+    {x:70.0, y:955}
+  ],
+
+  /* ─── single-phase solid boundaries (straight lines) ─── */
+  gammaLeftSlope: [   // sloping (37.5, 1125) → (41.0, 900)
+    {x:37.5, y:1125}, {x:41.0, y:900}
+  ],
+  gammaRightX: 45.2,  // vertical x = 45.2 from y = 900 → 1310
+  deltaLeftX:  61.0,  // vertical x = 61.0 from y = 900 → 1005
+  deltaRightX: 62.5,  // vertical x = 62.5 from y = 900 → 985 (with kink at 940)
+
+  /* ─── invariant horizontal isotherms ─── */
+  inv1: { T: 1125, x1: 20,   x2: 37.5 },  // eutectic L → β + γ
+  inv2: { T: 985,  x1: 45.2, x2: 61.0 },  // eutectoid γ → γ' + δ (985 °C)
+  inv3: { T: 940,  x1: 62.5, x2: 70.0 },  // lower δ boundary
+
+  /* ─── invariant points (toggleable markers) — only on-screen (c ≤ 60) ─── */
+  invariantPoints: [
+    { c: 33.5, T: 1125, kind: 'Eutectic',  desc: 'L → β + γ  (1125 °C)' },
+    { c: 44.9, T: 1310, kind: 'Congruent', desc: 'γ melts congruently  (44.9 wt% Ti, 1310 °C)' },
+    { c: 45.2, T: 985,  kind: 'Eutectoid', desc: 'γ + L ⇌ δ boundary  (985 °C)' }
+  ],
+
+  default: { c: 45, T: 1400 },
+  phaseLegend: ['L', 'β', 'γ', 'δ'],
+};
+
+/* ─── Region polygons — best-fit polygons for the schematic MATLAB regions ─── */
+SYS_NITI.getRegions = function() {
+  const sys = this;
+  return [
+    // 1. Liquid (top of diagram, above all liquidus curves)
+    {
+      name: 'L', color: PHASE_HEX['L'],
+      verts: regionVerts([
+        ['point', sys.xMin, sys.yMax],
+        ['point', sys.xMin, 1385],
+        ['curve', sys.liqBetaL,     false],   // (20, 1385) → (33.5, 1125)
+        ['curve', sys.liqGammaLeft, false],   // (33.5, 1125) → (44.9, 1310)
+        ['curve', sys.liqGammaRight,false],   // (44.9, 1310) → (62.5, 985)
+        ['curve', sys.liqDelta,     false],   // (62.5, 985) → (70, 955)
+        ['point', sys.xMax, sys.yMax]
+      ])
+    },
+    // 2. β + L : top-left wedge under curve 1, above 1125
+    {
+      name: 'β + L', color: '#f0d4d4',
+      verts: regionVerts([
+        ['point', sys.xMin, 1385],
+        ['curve', sys.liqBetaL, false],
+        ['point', sys.xMin, 1125]
+      ])
+    },
+    // 3. β + γ : below the 1125 eutectic, left of the sloping (37.5,1125)→(41,900) line
+    {
+      name: 'β + γ', color: '#e6d4d4',
+      verts: regionVerts([
+        ['point', sys.xMin,   1125],
+        ['point', 33.5,       1125],
+        ['point', 37.5,       1125],
+        ['curve', sys.gammaLeftSlope, false],   // (37.5, 1125) → (41, 900)
+        ['point', sys.xMin,   sys.yMin]
+      ])
+    },
+    // 4. γ + L (left hump) — between curve 2 (above) and curve 3 (below)
+    {
+      name: 'γ + L', color: '#dde8c8',
+      verts: regionVerts([
+        ['curve', sys.liqGammaLeft, false],     // (33.5, 1125) → (44.9, 1310)
+        ['curve', sys.solGammaLeft, true],      // (44.9, 1310) → (37.5, 1125)
+        ['point', 33.5, 1125]                   // close along eutectic line back to start
+      ])
+    },
+    // 5. γ (single phase) — bounded by curve 3 (left), x=45.2 (right), bottom y=900, sloping line
+    {
+      name: 'γ', color: PHASE_HEX['γ'],
+      verts: regionVerts([
+        ['point', 37.5,            1125],
+        ['curve', sys.solGammaLeft,false],      // (37.5, 1125) → (44.9, 1310)
+        ['point', sys.gammaRightX, 1310],
+        ['point', sys.gammaRightX, sys.yMin],
+        ['point', 41.0,            sys.yMin],
+        ['curve', sys.gammaLeftSlope, true]     // (41, 900) → (37.5, 1125)
+      ])
+    },
+    // 6. γ + L (right hump) — between curve 4 (top) and 985 line / x=45.2 (left)
+    {
+      name: 'γ + L', color: '#dde8c8',
+      verts: regionVerts([
+        ['point', sys.gammaRightX, 1310],
+        ['curve', sys.liqGammaRight, false],   // (44.9, 1310) → (62.5, 985)
+        ['point', sys.deltaRightX, sys.inv2.T],
+        ['point', sys.inv2.x1,     sys.inv2.T] // (45.2, 985) close left
+      ])
+    },
+    // 7. γ + δ — between x=45.2 and x=61.0, below 985, above y=900
+    {
+      name: 'γ + δ', color: '#d8d8e8',
+      verts: regionVerts([
+        ['point', sys.inv2.x1, sys.inv2.T],   // (45.2, 985)
+        ['point', sys.inv2.x2, sys.inv2.T],   // (61.0, 985)
+        ['point', sys.deltaLeftX, sys.yMin],  // (61.0, 900)
+        ['point', sys.gammaRightX, sys.yMin]  // (45.2, 900)
+      ])
+    },
+    // 8. δ — narrow strip from x=61 to curve 5, between 985 (top) and 900 (bottom)
+    {
+      name: 'δ', color: PHASE_HEX['δ'],
+      verts: regionVerts([
+        ['point', sys.deltaLeftX,  sys.inv2.T],   // (61.0, 985)
+        ['point', sys.deltaRightX, sys.inv2.T],   // (62.5, 985)
+        ['curve', sys.liqDelta,    false],        // (62.5, 985) → (70, 955)
+        ['point', sys.xMax,        sys.yMin],     // (70, 900)
+        ['point', sys.deltaLeftX,  sys.yMin]      // (61.0, 900)
+      ])
+    }
+  ];
+};
+
 SYS_NITI.regionFills = function(ctx, toPx) {
   for (const r of this.getRegions()) fillPolyVerts(ctx, r.verts, r.color, toPx);
 };
 
 SYS_NITI.drawBoundaries = function(ctx, toPx) {
   const sys = SYS_NITI;
-  const eut = sys.eutectoid;
-  drawCurve(ctx, sys.alphaGamma,  toPx, '#333', 1.8);
-  drawCurve(ctx, sys.gammaAlpha,  toPx, '#333', 1.8);
-  drawCurve(ctx, sys.acm,         toPx, '#333', 1.8);
-  drawCurve(ctx, sys.alphaSolvus, toPx, '#333', 1.4);
-  // Eutectoid isotherm at 727 °C, from α-end to right edge
-  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.8;
+  // 5 liquidus / solidus curves
+  drawCurve(ctx, sys.liqBetaL,      toPx, '#333', 1.8);
+  drawCurve(ctx, sys.liqGammaLeft,  toPx, '#333', 1.8);
+  drawCurve(ctx, sys.solGammaLeft,  toPx, '#333', 1.8);
+  drawCurve(ctx, sys.liqGammaRight, toPx, '#333', 1.8);
+  drawCurve(ctx, sys.liqDelta,      toPx, '#333', 1.8);
+  // single-phase boundaries
+  drawCurve(ctx, sys.gammaLeftSlope, toPx, '#333', 1.6);
+  ctx.strokeStyle = '#333'; ctx.lineWidth = 1.6;
   ctx.beginPath();
-  ctx.moveTo(...toPx(eut.cAlpha, eut.T));
-  ctx.lineTo(...toPx(sys.xMax,   eut.T));
+  ctx.moveTo(...toPx(sys.gammaRightX, sys.yMin));
+  ctx.lineTo(...toPx(sys.gammaRightX, 1310));
   ctx.stroke();
-  drawInvariantDot(ctx, toPx(eut.c, eut.T), 'eutectoid');
+  ctx.beginPath();
+  ctx.moveTo(...toPx(sys.deltaLeftX, sys.yMin));
+  ctx.lineTo(...toPx(sys.deltaLeftX, 1005));
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(...toPx(sys.deltaRightX, sys.yMin));
+  ctx.lineTo(...toPx(sys.deltaRightX, 985));
+  ctx.stroke();
+  // 3 horizontal invariant isotherms
+  for (const inv of [sys.inv1, sys.inv2, sys.inv3]) {
+    ctx.beginPath();
+    ctx.moveTo(...toPx(inv.x1, inv.T));
+    ctx.lineTo(...toPx(inv.x2, inv.T));
+    ctx.stroke();
+  }
+  // Invariant point markers (toggleable; labels live in the bottom legend)
+  if (showInvariantPoints) {
+    for (const p of sys.invariantPoints) {
+      drawInvariantPointMarker(ctx, toPx(p.c, p.T), p.kind);
+    }
+  }
 };
 
 SYS_NITI.regionLabels = function(ctx, toPx) {
@@ -1121,96 +1867,186 @@ SYS_NITI.regionLabels = function(ctx, toPx) {
 
 SYS_NITI.getState = function(c, T) {
   const sys = SYS_NITI;
-  const eut = sys.eutectoid;
 
-  // Above 912 °C — fully γ everywhere in this section
-  // Otherwise classify by phase region
-  const agT = c <= eut.cAlpha ? interp(sys.alphaGamma, c) : null;
-  const gaT = c <= eut.c      ? interp(sys.gammaAlpha,  c) : null;
-  const acmT = c >= eut.c     ? interp(sys.acm,         c) : null;
+  // Determine the liquidus temperature at composition c (selects the right curve segment)
+  let liqT;
+  if (c <= 33.5) liqT = interp(sys.liqBetaL, c);
+  else if (c <= 44.9) liqT = interp(sys.liqGammaLeft, c);
+  else if (c <= 62.5) liqT = interp(sys.liqGammaRight, c);
+  else liqT = interp(sys.liqDelta, c);
 
-  if (T >= 727) {
-    // Above eutectoid horizontal
-    if (c <= eut.c) {
-      // Possibly α+γ or single γ or single α
-      if (c < eut.cAlpha && agT !== null && T < agT) {
-        return single(sys, 'α', 'α — Ferrite (BCC)',
-          'Below the α/(α+γ) transus and very low C content. Single BCC α-ferrite.');
-      }
-      if (gaT !== null && T >= gaT) {
-        return single(sys, 'γ', 'γ — Austenite (FCC)',
-          'Above the γ/(α+γ) line. Single FCC austenite with C in interstitial solution.');
-      }
-      // α + γ
-      const cA = interpInverse(sys.alphaGamma, T) ?? 0;
-      const cG = interpInverse(sys.gammaAlpha, T) ?? eut.c;
-      const wA = (cG - c)/(cG - cA);
-      const wG = 1 - wA;
-      return {
-        regionLabel:'α + γ', stageTitle:'Two-phase — α + γ',
-        stageDesc:'Pro-eutectoid ferrite (α) nucleates on austenite grain boundaries; γ enriches in C as cooling progresses toward the eutectoid.',
-        phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'γ',frac:wG,seg:'seg-gamma'}],
-        tieLine:{T:T, ends:[{name:'α',c:cA},{name:'γ',c:cG}]},
-        reactionEqn:'',
-        activePhases:['α','γ'],
-        grainStates:{mode:'mixSolid', fracA:wG, phaseA:'γ', phaseB:'α'}
-      };
-    }
-    // c > eut.c → γ + Fe₃C or pure γ above Acm
-    if (acmT !== null && T >= acmT) {
-      return single(sys, 'γ', 'γ — Austenite (FCC)',
-        'Above the Acm line. Single FCC austenite.');
-    }
-    const cG = interpInverse(sys.acm, T) ?? eut.c;
-    const cF = eut.cFe3C;
-    const wG = (cF - c)/(cF - cG);
-    const wF = 1 - wG;
+  // 1) Liquid — above the relevant liquidus
+  if (T >= liqT) return nitiLiq();
+
+  // 2) β + L — under curve 1, above 1125, c in [20, 33.5]
+  if (c <= 33.5 && T >= sys.inv1.T) {
+    const xL = interpInverse(sys.liqBetaL, T);    // L composition (on curve 1)
+    const xB = sys.xMin;                           // β composition (left edge)
+    const wL = Math.max(0, Math.min(1, (xL - c) / (xL - xB)));
+    const wB = 1 - wL;
     return {
-      regionLabel:'γ + Fe₃C', stageTitle:'Two-phase — γ + Fe₃C',
-      stageDesc:'Pro-eutectoid Fe₃C precipitates on the austenite grain boundaries (Acm line). γ depletes in C toward the eutectoid composition.',
-      phases:[{name:'γ',frac:wG,seg:'seg-gamma'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
-      tieLine:{T:T, ends:[{name:'γ',c:cG},{name:'Fe₃C',c:cF}]},
+      regionLabel:'β + L', stageTitle:'Two-phase — β + L',
+      stageDesc:'Pro-eutectic β crystallises from the melt as isolated grains; the remaining liquid moves down curve 1 toward the eutectic at 1125 °C.',
+      phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'β',frac:wB,seg:'seg-beta'}],
+      tieLine:{T:T, ends:[{name:'β',c:xB},{name:'L',c:xL}]},
       reactionEqn:'',
-      activePhases:['γ','Fe3C'],
-      grainStates:{mode:'mixSolid', fracA:wG, phaseA:'γ', phaseB:'Fe3C'}
+      activePhases:['L','β'],
+      grainStates:{mode:'isolatedBlobs', blobPhase:'β', bgPhase:'L', solidFraction:wB}
     };
   }
-  // Below the eutectoid horizontal (T < 727)
-  if (c < eut.cAlpha) {
-    return single(sys, 'α', 'α — Ferrite (BCC)',
-      'Within the α-solvus. C is fully in interstitial solid solution.');
+
+  // 3) γ + L (left lobe) — between curve 2 (liquidus) and curve 3 (solidus), 33.5 ≤ c ≤ 44.9, T ≥ 1125
+  if (c >= 33.5 && c <= 44.9 && T >= sys.inv1.T) {
+    const aboveCurve2 = T > interp(sys.liqGammaLeft, c);
+    const aboveCurve3 = c >= 37.5 ? T > interp(sys.solGammaLeft, c) : true;
+    if (!aboveCurve2 && aboveCurve3) {
+      const xL = interpInverse(sys.liqGammaLeft, T);
+      const xG = (T >= 1125 && T <= 1310) ? interpInverse(sys.solGammaLeft, T) : 37.5;
+      const wL = Math.max(0, Math.min(1, (xG - c) / (xG - xL)));
+      const wG = 1 - wL;
+      return {
+        regionLabel:'γ + L', stageTitle:'Two-phase — γ + L (left lobe)',
+        stageDesc:'γ crystallises from the melt as isolated grains in the left lobe of the congruent γ liquidus.',
+        phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+        tieLine:{T:T, ends:[{name:'L',c:xL},{name:'γ',c:xG}]},
+        reactionEqn:'',
+        activePhases:['L','γ'],
+        grainStates:{mode:'isolatedBlobs', blobPhase:'γ', bgPhase:'L', solidFraction:wG}
+      };
+    }
   }
-  // α + Fe₃C: pro-eutectoid phase determined by composition relative to 0.76 %C
-  const cA = eut.cAlpha, cF = eut.cFe3C;
-  const wA = (cF - c)/(cF - cA);
-  const wF = 1 - wA;
-  let proEut, proFrac;
-  if (c < eut.c) {
-    proEut = 'α';
-    proFrac = (eut.c - c) / (eut.c - cA);
-  } else if (c > eut.c) {
-    proEut = 'Fe3C';
-    proFrac = (c - eut.c) / (cF - eut.c);
-  } else {
-    proEut = null; proFrac = 0;
+
+  // 4) γ + L (right lobe) — between curve 4 (liquidus) and x=45.2 (γ-edge), above 985
+  if (c >= sys.gammaRightX && c <= sys.deltaRightX && T >= sys.inv2.T && T < liqT) {
+    const xL = interpInverse(sys.liqGammaRight, T);
+    const xG = sys.gammaRightX;                    // γ comp on the vertical right edge
+    const wG = Math.max(0, Math.min(1, (xL - c) / (xL - xG)));
+    const wL = 1 - wG;
+    return {
+      regionLabel:'γ + L', stageTitle:'Two-phase — γ + L (right lobe)',
+      stageDesc:'γ crystallises from the melt as isolated grains along the descending right-hand liquidus toward the 985 °C invariant.',
+      phases:[{name:'L',frac:wL,seg:'seg-L'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+      tieLine:{T:T, ends:[{name:'γ',c:xG},{name:'L',c:xL}]},
+      reactionEqn:'',
+      activePhases:['L','γ'],
+      grainStates:{mode:'isolatedBlobs', blobPhase:'γ', bgPhase:'L', solidFraction:wG}
+    };
   }
-  const eutFrac = 1 - proFrac;
-  const reactionEqn = `<b>Eutectoid at 727 °C:</b>  γ (0.76 % C) → α (0.022 %) + Fe₃C (6.7 %) — known as <b>pearlite</b>`;
+
+  // 5) γ (single phase) — bounded by curve 3 / sloping line / x=45.2 / y=900
+  if (c >= 37.5 && c <= sys.gammaRightX) {
+    const slopeT = (c <= 41.0) ? interp(sys.gammaLeftSlope, c) : null;
+    const solT3  = (c <= 44.9) ? interp(sys.solGammaLeft, c)   : 1310;
+    if ((slopeT === null || T >= slopeT) && T <= solT3) {
+      return nitiSingle('γ', 'γ — single phase (intermetallic)',
+        'Single γ phase region bounded by the solidus (left), the (45.2 wt% Ti) vertical (right) and the sloping β+γ boundary (bottom-left).');
+    }
+  }
+
+  // 6) β + γ — below 1125, left of the sloping line
+  if (T < sys.inv1.T && T >= sys.yMin) {
+    const slopeC = (T >= 900) ? interpInverse(sys.gammaLeftSlope, T) : null;
+    if (slopeC !== null && c <= slopeC) {
+      const xB = sys.xMin;                           // β composition (left edge)
+      const xG = slopeC;                              // γ composition (sloping line at T)
+      const wG = Math.max(0, Math.min(1, (c - xB) / (xG - xB)));
+      const wB = 1 - wG;
+      if (c <= 37.5) {
+        // Eutectic-derived microstructure: pro-eutectic isolated grains + β+γ lamellar colonies
+        let proEut, proFrac;
+        if (c < 33.5) {
+          proEut = 'β';
+          proFrac = (33.5 - c) / (33.5 - xB);
+        } else if (c > 33.5) {
+          proEut = 'γ';
+          proFrac = (c - 33.5) / (37.5 - 33.5);
+        } else {
+          proEut = null;
+          proFrac = 0;
+        }
+        proFrac = Math.max(0, Math.min(1, proFrac));
+        return {
+          regionLabel:'β + γ',
+          stageTitle: proEut === null
+            ? 'Below eutectic — pure β + γ lamellae'
+            : `Below eutectic — pro-eutectic ${proEut} (preserved islands) + β + γ lamellar colonies`,
+          stageDesc: proEut === null
+            ? 'At the eutectic composition the entire liquid transformed to fine β + γ lamellae in one isothermal reaction.'
+            : `Pro-eutectic ${proEut} grains that crystallised from the melt above 1125 °C are preserved as isolated islands; the leftover liquid (between the islands) crystallised as β + γ lamellar colonies.`,
+          phases:[{name:'β',frac:wB,seg:'seg-beta'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+          tieLine:{T:T, ends:[{name:'β',c:xB},{name:'γ',c:xG}]},
+          reactionEqn:'<b>Eutectic at 1125 °C:</b>  L (33.5 wt% Ti) → β (20%) + γ (37.5%)',
+          activePhases:['β','γ'],
+          grainStates: proEut === null
+            // pure eutectic — no pro-eut blobs, all lamellar
+            ? {mode:'boundaryBand', bandPhase:'β', coreIsLamellar:true, coreLamA:'β', coreLamB:'γ', bandFraction:0}
+            : {mode:'isolatedBlobs', blobPhase:proEut, bgIsLamellar:true, bgLamA:'β', bgLamB:'γ', solidFraction:proFrac}
+        };
+      }
+      // c > 37.5: γ → β + γ precipitation; β nucleates at γ grain boundaries
+      return {
+        regionLabel:'β + γ',
+        stageTitle:'Two-phase — β + γ (β film at γ grain boundaries)',
+        stageDesc:'Cooling across the sloping β+γ phase boundary; β precipitates nucleate along original γ grain boundaries and grow as a film.',
+        phases:[{name:'β',frac:wB,seg:'seg-beta'},{name:'γ',frac:wG,seg:'seg-gamma'}],
+        tieLine:{T:T, ends:[{name:'β',c:xB},{name:'γ',c:xG}]},
+        reactionEqn:'',
+        activePhases:['β','γ'],
+        grainStates:{mode:'boundaryBand', bandPhase:'β', corePhase:'γ', bandFraction:wB}
+      };
+    }
+  }
+
+  // 7) γ + δ — between x=45.2 and x=61.0, below 985
+  if (T < sys.inv2.T && c >= sys.gammaRightX && c <= sys.deltaLeftX) {
+    const xG = sys.gammaRightX;
+    const xD = sys.deltaLeftX;
+    const wD = Math.max(0, Math.min(1, (c - xG) / (xD - xG)));
+    const wG = 1 - wD;
+    return {
+      regionLabel:'γ + δ', stageTitle:'Two-phase — γ + δ',
+      stageDesc:'Below the 985 °C peritectic: pre-existing γ grains are preserved as isolated islands while the surrounding L→δ transformation fills the space between them.',
+      phases:[{name:'γ',frac:wG,seg:'seg-gamma'},{name:'δ',frac:wD,seg:'seg-delta'}],
+      tieLine:{T:T, ends:[{name:'γ',c:xG},{name:'δ',c:xD}]},
+      reactionEqn:'<b>985 °C reaction:</b>  L + γ → δ  (peritectic)',
+      activePhases:['γ','δ'],
+      // γ grains preserved from γ+L above 985; the original liquid is now δ
+      grainStates:{mode:'isolatedBlobs', blobPhase:'γ', bgPhase:'δ', solidFraction:wG}
+    };
+  }
+
+  // 8) δ — c ≥ 61.0
+  if (c >= sys.deltaLeftX) {
+    return nitiSingle('δ', 'δ — Ti-rich intermetallic',
+      'Single δ phase region (Ti-rich end of the diagram).');
+  }
+
+  // Fallback
   return {
-    regionLabel:'α + Fe₃C',
-    stageTitle: proEut === null
-      ? 'Eutectoid steel — fully pearlite'
-      : `${proEut === 'α' ? 'Hypoeutectoid' : 'Hypereutectoid'} steel — pro-eutectoid ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} + pearlite`,
-    stageDesc: proEut === null
-      ? 'At 0.76 wt% C the entire γ phase decomposes in one isothermal reaction into a fine α + Fe₃C lamellar structure (pearlite).'
-      : `Pro-eutectoid ${proEut === 'Fe3C' ? 'Fe₃C' : proEut} formed above 727 °C; the remaining γ (at 0.76 % C) decomposed into pearlite (α + Fe₃C lamellae).`,
-    phases:[{name:'α',frac:wA,seg:'seg-alpha'},{name:'Fe₃C',frac:wF,seg:'seg-fe3c'}],
-    tieLine:{T:T, ends:[{name:'α',c:cA},{name:'Fe₃C',c:cF}]},
-    reactionEqn,
-    activePhases:['α','Fe3C'],
-    grainStates:{mode:'postEutectoidFe', proEut, proFrac, eutFrac, lamA:'α', lamB:'Fe3C'}
+    regionLabel:'—', stageTitle:'—', stageDesc:'—',
+    phases:[], tieLine:null, reactionEqn:'', activePhases:[], grainStates:{mode:'allLiquid'}
   };
 };
+
+function nitiLiq() {
+  return {
+    regionLabel:'Liquid', stageTitle:'Single phase — Liquid',
+    stageDesc:'Above all liquidus curves: fully molten Ni–Ti melt.',
+    phases:[{name:'L',frac:1,seg:'seg-L'}],
+    tieLine:null, reactionEqn:'',
+    activePhases:['L'], grainStates:{mode:'allLiquid'}
+  };
+}
+function nitiSingle(ph, title, desc) {
+  const segMap = { 'L':'seg-L', 'α':'seg-alpha', 'β':'seg-beta', 'γ':'seg-gamma', 'δ':'seg-delta' };
+  return {
+    regionLabel: ph, stageTitle: title, stageDesc: desc,
+    phases:[{name:ph, frac:1, seg: segMap[ph] || 'seg-alpha'}],
+    tieLine:null, reactionEqn:'',
+    activePhases:[ph],
+    grainStates:{mode:'allSolid', phase: ph}
+  };
+}
 
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1322,11 +2158,12 @@ function clipPolygon(verts, b) {
   return v;
 }
 
-/* ─── current axes / clamp bounds (respects the zoom toggle) ─── */
-let zoomActive = false;
+/* ─── current axes / clamp bounds (respects whichever zoom mode is active) ─── */
+let zoomMode = null;   // null | 'high' | 'low' (key into currentSystem.zoomModes)
+let showInvariantPoints = false;
 function getBounds() {
-  if (zoomActive && currentSystem && currentSystem.zoomBounds) {
-    return currentSystem.zoomBounds;
+  if (zoomMode && currentSystem && currentSystem.zoomModes && currentSystem.zoomModes[zoomMode]) {
+    return currentSystem.zoomModes[zoomMode].bounds;
   }
   return {
     xMin: currentSystem.xMin, xMax: currentSystem.xMax,
@@ -1345,12 +2182,54 @@ function drawRegionLabels(ctx, toPx, sys) {
     let [cx, cy] = polygonCentroid(visible);
     if (r.yShift) cy += r.yShift;
     if (r.xShift) cx += r.xShift;
-    const [px, py] = toPx(cx, cy);
-    const sizePx = (r.smallFont && !zoomActive) ? 13 : 17;
-    ctx.fillStyle = '#1a1a1a';
+    const sizePx = (r.smallFont && !zoomMode) ? 13 : 17;
     ctx.font = 'italic 600 ' + fpx(sizePx) + 'px "Times New Roman", serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+
+    /* External label with arrow — used for small regions where centroid placement
+       overflows or rotates awkwardly (e.g. Fe-C γ+L). The label is drawn at an
+       explicit world position and an arrow points from the label to the region. */
+    if (r.labelPos && r.labelPos.x >= bounds.xMin && r.labelPos.x <= bounds.xMax &&
+        r.labelPos.y >= bounds.yMin && r.labelPos.y <= bounds.yMax) {
+      const [lpx, lpy] = toPx(r.labelPos.x, r.labelPos.y);
+      const [tpx, tpy] = toPx(cx, cy);
+      // arrow from label to region centroid
+      ctx.strokeStyle = '#1a1a1a';
+      ctx.lineWidth = 1.4;
+      ctx.setLineDash([]);
+      // figure out which edge of the label box to anchor the arrow to
+      const tw = ctx.measureText(r.name).width;
+      const pad = 5;
+      const boxW = tw + pad * 2;
+      const boxH = sizePx + 4;
+      // simple anchor: nearest of left/right midpoint
+      const ax = (tpx < lpx) ? (lpx - boxW/2) : (lpx + boxW/2);
+      const ay = lpy;
+      ctx.beginPath();
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(tpx, tpy);
+      ctx.stroke();
+      // arrowhead at the centroid end
+      const dx = tpx - ax, dy = tpy - ay;
+      const len = Math.hypot(dx, dy) || 1;
+      const ux = dx/len, uy = dy/len;
+      const hSz = 6;
+      ctx.fillStyle = '#1a1a1a';
+      ctx.beginPath();
+      ctx.moveTo(tpx, tpy);
+      ctx.lineTo(tpx - hSz*ux - hSz*0.5*uy, tpy - hSz*uy + hSz*0.5*ux);
+      ctx.lineTo(tpx - hSz*ux + hSz*0.5*uy, tpy - hSz*uy - hSz*0.5*ux);
+      ctx.closePath();
+      ctx.fill();
+      // label text (no background, per the diagram-text style)
+      ctx.fillStyle = '#1a1a1a';
+      ctx.fillText(r.name, lpx, lpy);
+      continue;
+    }
+
+    const [px, py] = toPx(cx, cy);
+    ctx.fillStyle = '#1a1a1a';
     if (r.rotate) {
       let lpx = Infinity, rpx = -Infinity, lp, rp;
       for (const v of visible) {
@@ -1379,6 +2258,26 @@ function drawInvariantDot(ctx, pt, kind='eutectic') {
   ctx.stroke();
 }
 
+/* Coloured marker + small label for invariant points (toggleable per system) */
+const INVARIANT_COLOR = {
+  'Eutectic'  : '#c44d4d',
+  'Eutectoid' : '#7e57c2',
+  'Congruent' : '#1976d2',
+  'Peritectic': '#388e3c',
+  'Peritectoid':'#f57c00'
+};
+function drawInvariantPointMarker(ctx, pt, kind='Eutectic') {
+  // Coloured dot only — the kind label lives in the separate legend below the diagram.
+  const color = INVARIANT_COLOR[kind] || '#1a1a1a';
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(pt[0], pt[1], 5.5, 0, 2*Math.PI);
+  ctx.fill();
+  ctx.strokeStyle = '#fff';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+}
+
 /* ════════════════════════════════════════════════════════════════════
    PHASE DIAGRAM CANVAS — render + drag
    ──────────────────────────────────────────────────────────────────── */
@@ -1389,6 +2288,7 @@ let currentSystem = SYS_CUNI;
 let dotC = currentSystem.default.c;
 let dotT = currentSystem.default.T;
 let dragging = false;
+let snappedInvariant = null;  // {c, T, kind} when the dot is currently snapped to an invariant point
 let DPR = 1;
 let DW = 0, DH = 0;
 function fontScale() {
@@ -1490,10 +2390,12 @@ function drawAxes(ctx) {
 function computeTicks(min, max) {
   const range = max - min;
   let step, decimals = 0;
-  if (range >= 1000) step = 100;
+  if (range >= 1500) step = 300;
+  else if (range >= 1000) step = 200;
   else if (range >= 500) step = 100;
   else if (range >= 100) step = 20;
   else if (range >= 50)  step = 10;
+  else if (range >= 30)  step = 5;
   else if (range >= 10)  step = 2;
   else if (range >= 5)   step = 1;
   else if (range >= 1)   { step = 0.2; decimals = 1; }
@@ -1567,8 +2469,11 @@ function drawTieLine(ctx, state) {
 function drawDot(ctx, c, T) {
   const [px, py] = diaToPx(c, T);
   const b = getBounds();
+  // When snapped to an invariant point, the border colour follows the invariant
+  // kind so the user knows the dot is locked to that exact (T, c).
+  const snapColor = snappedInvariant ? (INVARIANT_COLOR[snappedInvariant.kind] || '#1a1a1a') : null;
   // Vertical guide
-  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
+  ctx.strokeStyle = snapColor ? snapColor : 'rgba(0,0,0,0.18)';
   ctx.lineWidth = 1;
   ctx.setLineDash([2, 3]);
   ctx.beginPath();
@@ -1582,14 +2487,14 @@ function drawDot(ctx, c, T) {
   ctx.arc(px, py, 8, 0, 2*Math.PI);
   ctx.fillStyle = '#fff';
   ctx.fill();
-  ctx.strokeStyle = '#1a1a1a';
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = snapColor || '#1a1a1a';
+  ctx.lineWidth = snapColor ? 3.0 : 2.5;
   ctx.stroke();
   // inner cross
   ctx.beginPath();
   ctx.moveTo(px - 4, py); ctx.lineTo(px + 4, py);
   ctx.moveTo(px, py - 4); ctx.lineTo(px, py + 4);
-  ctx.strokeStyle = '#1a1a1a';
+  ctx.strokeStyle = snapColor || '#1a1a1a';
   ctx.lineWidth = 1.4;
   ctx.stroke();
 }
@@ -1600,7 +2505,12 @@ function drawDotLabel(ctx, c, T) {
   const [px, py] = diaToPx(c, T);
   ctx.font = '600 ' + fpx(12) + 'px "JetBrains Mono", "SF Mono", monospace';
   ctx.textBaseline = 'middle';
-  const txt = `${formatComp(c)} · ${T.toFixed(0)} °C`;
+  // When snapped to an invariant point, append the kind to the label and use a
+  // matching coloured border so the user can identify which invariant they're on.
+  const snapColor = snappedInvariant ? (INVARIANT_COLOR[snappedInvariant.kind] || '#1a1a1a') : null;
+  const txt = snappedInvariant
+    ? `${formatComp(c)} · ${T.toFixed(0)} °C  · ${snappedInvariant.kind}`
+    : `${formatComp(c)} · ${T.toFixed(0)} °C`;
   const tw = ctx.measureText(txt).width;
   const pad = 5, off = 14;
   const boxW = tw + pad * 2;
@@ -1620,12 +2530,12 @@ function drawDotLabel(ctx, c, T) {
   // Keep label inside top/bottom of canvas too
   let labelY = py - 12;
   if (labelY - boxH/2 < 4) labelY = py + 12;
-  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  ctx.fillStyle = 'rgba(255,255,255,0.96)';
   ctx.fillRect(boxX, labelY - boxH/2, boxW, boxH);
-  ctx.strokeStyle = 'rgba(0,0,0,0.18)';
-  ctx.lineWidth = 1;
+  ctx.strokeStyle = snapColor || 'rgba(0,0,0,0.18)';
+  ctx.lineWidth = snapColor ? 2 : 1;
   ctx.strokeRect(boxX + 0.5, labelY - boxH/2 + 0.5, boxW - 1, boxH - 1);
-  ctx.fillStyle = '#1a1a1a';
+  ctx.fillStyle = snapColor || '#1a1a1a';
   ctx.textAlign = align;
   ctx.fillText(txt, anchorX, labelY);
 }
@@ -1673,6 +2583,8 @@ function drawDiagram() {
 }
 
 /* ─── pointer interaction ─── */
+let lockMode = 'free';   // 'free' | 'fixT' | 'fixC'
+
 function handlePointer(e) {
   const rect = diaCanvas.getBoundingClientRect();
   const px = e.clientX - rect.left;
@@ -1681,9 +2593,44 @@ function handlePointer(e) {
   const b = getBounds();
   c = Math.max(b.xMin, Math.min(b.xMax, c));
   T = Math.max(b.yMin, Math.min(b.yMax, T));
+  if (lockMode === 'fixT') T = dotT;   // keep T fixed; slide along x
+  if (lockMode === 'fixC') c = dotC;   // keep c fixed; slide along y
+
+  // Magnet snap to invariant points (when the toggle is on).  Snap radius is
+  // kept moderate so it pulls the dot in only when the cursor is clearly near
+  // a marker, but not so wide that it interferes with general dragging.
+  snappedInvariant = null;
+  if (showInvariantPoints && currentSystem.hasInvariantToggle && currentSystem.invariantPoints) {
+    const SNAP_PX = 14;
+    let bestD = Infinity, bestP = null;
+    for (const p of currentSystem.invariantPoints) {
+      if (p.c < b.xMin || p.c > b.xMax || p.T < b.yMin || p.T > b.yMax) continue;
+      const [pcx, pcy] = diaToPx(p.c, p.T);
+      // Respect axis locks: a point can't be snapped to if it would violate
+      // the lock direction (e.g., fixed T but the invariant is on a different T).
+      if (lockMode === 'fixT' && Math.abs(p.T - dotT) > 0.5) continue;
+      if (lockMode === 'fixC' && Math.abs(p.c - dotC) > 0.01 * (b.xMax - b.xMin)) continue;
+      const d = Math.hypot(pcx - px, pcy - py);
+      if (d < SNAP_PX && d < bestD) { bestD = d; bestP = p; }
+    }
+    if (bestP) {
+      snappedInvariant = bestP;
+      c = bestP.c;
+      T = bestP.T;
+    }
+  }
+
   dotC = c; dotT = T;
   renderAll();
 }
+
+document.querySelectorAll('.axis-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.axis-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    lockMode = btn.dataset.lock;
+  });
+});
 diaCanvas.addEventListener('pointerdown', (e) => {
   dragging = true;
   diaCanvas.classList.add('dragging');
@@ -1715,6 +2662,8 @@ let GRAINS = [];        // {cx, cy, rank, angle, stripeSpacing}
 let MW = 0, MH = 0;
 let grainMap = null;    // Uint8Array
 let boundaryMap = null;
+let distanceMap = null; // Float32Array — distance from each pixel to its grain's centre
+let cellMaxDist = null; // Float32Array — max(dist_to_centre) across pixels in each cell
 
 function rngSeed(seed) {
   let s = seed;
@@ -1770,19 +2719,26 @@ function buildGrainMap() {
   if (MW <= 0 || MH <= 0) return;
   grainMap = new Uint8Array(MW * MH);
   boundaryMap = new Uint8Array(MW * MH);
+  distanceMap = new Float32Array(MW * MH);
+  cellMaxDist = new Float32Array(GRAINS.length);
   const cx = MW/2, cy = MH/2, R = Math.min(MW, MH)/2 - 3;
   const R2 = R * R;
   for (let y = 0; y < MH; y++) {
     for (let x = 0; x < MW; x++) {
+      const idx = y*MW + x;
       const dx = x - cx, dy = y - cy;
-      if (dx*dx + dy*dy > R2) { grainMap[y*MW+x] = 0; continue; }
+      if (dx*dx + dy*dy > R2) { grainMap[idx] = 0; distanceMap[idx] = 0; continue; }
       let best = 0, bestD = Infinity;
       for (let i = 0; i < GRAINS.length; i++) {
         const ddx = x - GRAINS[i].cx, ddy = y - GRAINS[i].cy;
         const d = ddx*ddx + ddy*ddy;
         if (d < bestD) { bestD = d; best = i + 1; }
       }
-      grainMap[y*MW+x] = best;
+      grainMap[idx] = best;
+      const dist = Math.sqrt(bestD);
+      distanceMap[idx] = dist;
+      const gi = best - 1;
+      if (dist > cellMaxDist[gi]) cellMaxDist[gi] = dist;
     }
   }
   // boundary detection — only between two non-zero grains (don't trace the
@@ -1830,32 +2786,130 @@ function computeGrainStates(state) {
 }
 
 function decideGrainState(gs, rank) {
-  // Returns { phase: <name>, lamellar: bool, lamA, lamB }
+  // Each return object describes ONE of:
+  //   { phase: name }                        — full-cell solid colour
+  //   { lamellar:true, lamA, lamB }          — full-cell lamellar
+  //   { precipitates:true, matrix, precipitate, precFrac }  — needle precipitates inside matrix
+  //   { isolatedBlob:true, blobPhase | null, blobThresh, bg* }  — solid blob in cell, background fills rest
+  //   { boundaryBand:true, bandPhase, bandThresh, core* }       — phase-coloured band at cell edge, core in middle
   switch (gs.mode) {
     case 'allLiquid':  return { phase:'L' };
     case 'allAlpha':   return { phase:'α' };
     case 'allSolid':   return { phase: gs.phase };
+
+    /* Isolated-blob modes: rank-based nucleation; nucleated cells get a centred blob,
+       others are entirely background.  Background may be a single phase or lamellar. */
+    case 'isolatedBlobs': {
+      const f = Math.max(0, Math.min(1, gs.solidFraction || 0));
+      const nucleated = rank < Math.sqrt(f);
+      const blobThresh = Math.pow(f, 0.25);  // normDist < this → pixel is blob
+      return {
+        isolatedBlob: true,
+        blobPhase: nucleated ? gs.blobPhase : null,
+        blobThresh,
+        bgPhase: gs.bgPhase,
+        bgIsLamellar: !!gs.bgIsLamellar,
+        bgLamA: gs.bgLamA, bgLamB: gs.bgLamB
+      };
+    }
+
+    /* Boundary-band modes: every cell has a band of `bandPhase` at the outer edge
+       and `corePhase` (or lamellar) at the centre.  Used for γ→γ+α / γ→γ+Fe₃C, etc.
+       The bandThresh below uses a visually-amplified mapping that stays MONOTONIC
+       in bf (mass fraction): tiny bf still produces a visible band, while larger
+       bf produces a perceptibly thicker one.  The geometric/area-preserving form
+       (sqrt(1-bf)) is used as an upper bound once it falls below the visual one. */
+    case 'boundaryBand': {
+      const bf = Math.max(0, Math.min(1, gs.bandFraction || 0));
+      let bandThresh;
+      if (bf <= 0)        bandThresh = 1.0;
+      else if (bf >= 1)   bandThresh = 0.0;
+      else {
+        // Visual mapping — amplifies small fractions but stays monotonic:
+        //   bf=0.01 → ~0.94 (band ≈ 6%)    bf=0.10 → ~0.81 (band ≈ 19%)
+        //   bf=0.30 → ~0.67 (band ≈ 33%)   bf=0.50 → ~0.58 (band ≈ 42%)
+        const visual = 1 - Math.sqrt(bf) * 0.60;
+        const geom   = Math.sqrt(1 - bf);
+        bandThresh = Math.min(visual, geom);
+        bandThresh = Math.max(0, Math.min(0.94, bandThresh));
+      }
+      return {
+        boundaryBand: true,
+        bandPhase: gs.bandPhase,
+        bandThresh,
+        corePhase: gs.corePhase,
+        coreIsLamellar: !!gs.coreIsLamellar,
+        coreLamA: gs.coreLamA, coreLamB: gs.coreLamB
+      };
+    }
+
+    /* Ledeburite (cast iron) — Fe₃C-matrix microstructure with γ (or pearlite)
+       islands inside each cell, plus optional pro-eutectic blobs.
+       gs.proEut: 'γ' / 'Fe3C' / 'γ→pearlite' / null
+       gs.proFrac: fraction of cells that are pro-eutectic
+       gs.ledIslandPhase: 'γ' (high T) or 'pearlite' (low T)
+       gs.wFe3C: total Fe₃C mass fraction (controls island size in eutectic cells)
+       gs.T_phase: 'high' (>727) or 'low' (<727)
+    */
+    case 'ledeburite': {
+      const proFrac = Math.max(0, Math.min(1, gs.proFrac || 0));
+      const isPro = rank < proFrac;
+      const wFe = Math.max(0, Math.min(1, gs.wFe3C || 0.51));
+      // Island core covers (1 − wFe3C) of the cell area → island radius = sqrt(1 − wFe3C)
+      // Visual amplification: keep islands clearly visible at any composition by
+      // ensuring island radius (relative to cell radius) is in [0.45, 0.85].
+      let islandThresh = Math.sqrt(1 - wFe);            // normDist < this → island
+      islandThresh = Math.max(0.45, Math.min(0.85, islandThresh));
+      if (isPro) {
+        if (gs.proEut === 'Fe3C') {
+          // Pro-eutectic Fe₃C grain — entire cell is Fe₃C (stays solid below 727 too)
+          return { phase: 'Fe3C' };
+        }
+        if (gs.proEut === 'γ') {
+          // Pro-eutectic γ grain (above 727) — entire cell is γ
+          return { phase: 'γ' };
+        }
+        if (gs.proEut === 'γ→pearlite') {
+          // Pro-eutectic γ that has transformed to pearlite below 727
+          return { lamellar:true, lamA:'α', lamB:'Fe3C' };
+        }
+      }
+      // Eutectic ledeburite cell: Fe₃C outer matrix band + central γ (or pearlite) island.
+      if (gs.T_phase === 'low' || gs.ledIslandPhase === 'pearlite') {
+        // Ledeburite II — island core decomposes into pearlite lamellae
+        return {
+          boundaryBand: true,
+          bandPhase: 'Fe3C',
+          bandThresh: islandThresh,
+          coreIsLamellar: true,
+          coreLamA: 'α', coreLamB: 'Fe3C'
+        };
+      }
+      // Ledeburite I — Fe₃C matrix + smooth γ island
+      return {
+        boundaryBand: true,
+        bandPhase: 'Fe3C',
+        bandThresh: islandThresh,
+        corePhase: 'γ',
+        coreIsLamellar: false
+      };
+    }
+
+    /* Legacy modes retained for completeness */
     case 'liquidAlphaMix': return rank < (gs.fracAlpha || 0) ? { phase:'α' } : { phase:'L' };
     case 'liquidBetaMix':  return rank < (gs.fracBeta || 0)  ? { phase:'β' } : { phase:'L' };
     case 'liquidGammaMix': return rank < (gs.fracGamma||0)   ? { phase:'γ' } : { phase:'L' };
     case 'liquidDeltaMix': return rank < (gs.fracDelta||0)   ? { phase:'δ' } : { phase:'L' };
     case 'liquidFe3CMix':  return rank < (gs.fracFe3C ||0)   ? { phase:'Fe3C' } : { phase:'L' };
     case 'mixSolid': {
-      // fracA refers to phaseA in the pair
       return rank < gs.fracA ? { phase: gs.phaseA } : { phase: gs.phaseB };
     }
     case 'postEutectic': {
-      // pro-eutectic phase + lamellar α+β colonies (Cu-Ag)
       if (rank < gs.proFrac && gs.proEut) return { phase: gs.proEut };
       return { lamellar:true, lamA: gs.lamA, lamB: gs.lamB };
     }
     case 'matrixPrecipitates': {
-      // every grain = solid matrix with tiny precipitate specks scattered inside
       return { precipitates:true, matrix: gs.matrix, precipitate: gs.precipitate, precFrac: gs.precFrac };
-    }
-    case 'postEutectoidNiTi': {
-      if (rank < gs.proFrac && gs.proEut) return { phase: gs.proEut };
-      return { lamellar:true, lamA: gs.lamA, lamB: gs.lamB };
     }
     case 'postEutectoidFe': {
       if (rank < gs.proFrac) return { phase: gs.proEut === 'Fe3C' ? 'Fe3C' : 'α' };
@@ -1863,15 +2917,11 @@ function decideGrainState(gs, rank) {
     }
     case 'castIron': {
       if (gs.proEut === 'γ→pearlite' && rank < gs.proFrac) {
-        // pro-eutectic γ has now decomposed to pearlite (lamellar α+Fe3C)
         return { lamellar:true, lamA:'α', lamB:'Fe3C' };
       }
       if (gs.proEut === 'Fe3C' && rank < gs.proFrac) {
         return { phase:'Fe3C' };
       }
-      // transformed ledeburite: was γ+Fe3C eutectic; γ→pearlite at 727. Mix of
-      // discrete Fe3C grains and pearlite colonies.
-      // Use a sub-rank trick: half of these become solid Fe3C grains, half lamellar
       const subRank = (rank - gs.proFrac) / (gs.eutFrac || 1);
       if (subRank < 0.5) return { phase:'Fe3C' };
       return { lamellar:true, lamA:'α', lamB:'Fe3C' };
@@ -1917,41 +2967,87 @@ function renderMicro(state) {
   const grainStates = computeGrainStates(state);
   // Pre-resolve fast lookups per grain to avoid object dispatch in the hot loop
   const N = GRAINS.length;
+  // Mode flags
+  const grainMode = new Uint8Array(N);    // 0 = single phase, 1 = lamellar, 2 = precipitates, 3 = isolated blob, 4 = boundary band
   const grainSolid = new Uint8Array(N);
   const grainPhaseU32 = new Uint32Array(N);
   const grainLamA = new Uint32Array(N);
   const grainLamB = new Uint32Array(N);
-  const grainIsLam = new Uint8Array(N);
   const grainCx   = new Float32Array(N);
   const grainCy   = new Float32Array(N);
   const grainCos  = new Float32Array(N);
   const grainSin  = new Float32Array(N);
   const grainSpc  = new Float32Array(N);
-  const grainHasPrec   = new Uint8Array(N);
-  const grainPrecMat   = new Uint32Array(N);     // matrix colour
-  const grainPrecPart  = new Uint32Array(N);     // precipitate colour
-  const grainPrecThr   = new Uint16Array(N);     // threshold out of 4096
+  // Precipitates
+  const grainPrecMat   = new Uint32Array(N);
+  const grainPrecPart  = new Uint32Array(N);
+  const grainPrecThr   = new Uint16Array(N);
+  // Isolated-blob arrays
+  const grainBlobColor    = new Uint32Array(N);
+  const grainBlobHas      = new Uint8Array(N);    // 1 if this cell has a blob (else all background)
+  const grainBlobThresh   = new Float32Array(N);
+  const grainBgColor      = new Uint32Array(N);
+  const grainBgIsLam      = new Uint8Array(N);
+  const grainBgLamA       = new Uint32Array(N);
+  const grainBgLamB       = new Uint32Array(N);
+  const grainBgIsLiquid   = new Uint8Array(N);    // suppresses Voronoi boundary drawing
+  // Boundary-band arrays
+  const grainBandColor    = new Uint32Array(N);
+  const grainBandThresh   = new Float32Array(N);
+  const grainCoreColor    = new Uint32Array(N);
+  const grainCoreIsLam    = new Uint8Array(N);
+  const grainCoreLamA     = new Uint32Array(N);
+  const grainCoreLamB     = new Uint32Array(N);
+
   for (let i = 0; i < N; i++) {
     const gs = grainStates[i], gr = GRAINS[i];
     grainCx[i] = gr.cx; grainCy[i] = gr.cy;
     grainCos[i] = gr.cosA; grainSin[i] = gr.sinA;
     grainSpc[i] = gr.stripeSpacing;
-    if (gs.lamellar) {
-      grainIsLam[i] = 1;
+    if (gs.isolatedBlob) {
+      grainMode[i] = 3;
+      const bgIsLiquid = gs.bgPhase === 'L';
+      grainBgIsLiquid[i] = bgIsLiquid ? 1 : 0;
+      // The "solid" flag controls Voronoi boundary darkening.  We want boundaries
+      // suppressed when the background is liquid (matches reference image where
+      // isolated grains float in a uniform liquid pool with no Voronoi lines).
+      grainSolid[i] = bgIsLiquid ? 0 : 1;
+      grainBlobHas[i] = gs.blobPhase ? 1 : 0;
+      grainBlobThresh[i] = gs.blobThresh;
+      grainBlobColor[i] = gs.blobPhase ? (PHASE_U32[gs.blobPhase] ?? PHASE_U32_FALLBACK) : 0;
+      if (gs.bgIsLamellar) {
+        grainBgIsLam[i] = 1;
+        grainBgLamA[i] = PHASE_U32[gs.bgLamA] ?? PHASE_U32_FALLBACK;
+        grainBgLamB[i] = PHASE_U32[gs.bgLamB] ?? PHASE_U32_FALLBACK;
+      } else {
+        grainBgColor[i] = PHASE_U32[gs.bgPhase] ?? PHASE_U32_FALLBACK;
+      }
+    } else if (gs.boundaryBand) {
+      grainMode[i] = 4;
+      grainSolid[i] = 1;
+      grainBandThresh[i] = gs.bandThresh;
+      grainBandColor[i] = PHASE_U32[gs.bandPhase] ?? PHASE_U32_FALLBACK;
+      if (gs.coreIsLamellar) {
+        grainCoreIsLam[i] = 1;
+        grainCoreLamA[i] = PHASE_U32[gs.coreLamA] ?? PHASE_U32_FALLBACK;
+        grainCoreLamB[i] = PHASE_U32[gs.coreLamB] ?? PHASE_U32_FALLBACK;
+      } else {
+        grainCoreColor[i] = PHASE_U32[gs.corePhase] ?? PHASE_U32_FALLBACK;
+      }
+    } else if (gs.lamellar) {
+      grainMode[i] = 1;
       grainSolid[i] = 1;
       grainLamA[i] = PHASE_U32[gs.lamA] ?? PHASE_U32_FALLBACK;
       grainLamB[i] = PHASE_U32[gs.lamB] ?? PHASE_U32_FALLBACK;
     } else if (gs.precipitates) {
-      grainIsLam[i] = 0;
+      grainMode[i] = 2;
       grainSolid[i] = 1;
-      grainHasPrec[i]  = 1;
       grainPrecMat[i]  = PHASE_U32[gs.matrix]      ?? PHASE_U32_FALLBACK;
       grainPrecPart[i] = PHASE_U32[gs.precipitate] ?? PHASE_U32_FALLBACK;
-      // Convert area-fraction → per-cell probability based on needle/cell area ratio
       const frac = Math.max(0.015, Math.min(gs.precFrac || 0, 0.40));
       grainPrecThr[i]  = Math.min(4095, Math.round(frac * NEEDLE_CELLS_PER_NEEDLE * 4096));
     } else {
-      grainIsLam[i] = 0;
+      grainMode[i] = 0;
       grainSolid[i] = gs.phase === 'L' ? 0 : 1;
       grainPhaseU32[i] = PHASE_U32[gs.phase] ?? PHASE_U32_FALLBACK;
     }
@@ -1964,21 +3060,83 @@ function renderMicro(state) {
     const g = grainMap[idx];
     if (g === 0) { buf32[idx] = TRANSPARENT_U32; continue; }
     const gi = g - 1;
+    const mode = grainMode[gi];
     let colU32;
-    if (grainIsLam[gi]) {
+    let isBandOrBlob = false;   // suppresses Voronoi boundary darkening when true
+    if (mode === 3) {
+      // Isolated blob: nucleated cells have a solid blob in the centre + bg around.
+      // The blob is outlined with a thin dark line (≈ 1 px, same width as the
+      // normal grain-boundary line) at BOTH (a) the curved blob edge and
+      // (b) the Voronoi cell boundary when in the blob — so two adjacent blobs
+      // meeting at a shared cell edge get a continuous grain-boundary line
+      // separating them, not a missing edge.
+      const md = cellMaxDist[gi] || 1;
+      const normDist = distanceMap[idx] / md;
+      let isBlobOutline = false;
+      let inBlob = false;
+      if (grainBlobHas[gi]) {
+        const t = grainBlobThresh[gi];
+        inBlob = normDist < t;
+        const outlinePx = Math.max(1.0, MW / 360);
+        const outlineWidthNorm = outlinePx / md;
+        const atBlobEdge   = inBlob && (t - normDist) < outlineWidthNorm;
+        const atVoronoiEdge = inBlob && boundaryMap[idx];
+        if (atBlobEdge || atVoronoiEdge) isBlobOutline = true;
+      }
+      if (isBlobOutline) {
+        colU32 = 0xff202020;
+        isBandOrBlob = true;
+      } else if (inBlob) {
+        colU32 = grainBlobColor[gi];
+        isBandOrBlob = true;
+      } else if (grainBgIsLam[gi]) {
+        const x = idx % MW, y = (idx / MW) | 0;
+        const proj = (x - grainCx[gi]) * grainCos[gi] + (y - grainCy[gi]) * grainSin[gi];
+        const stripe = Math.floor(proj / grainSpc[gi]);
+        colU32 = (stripe & 1) === 0 ? grainBgLamA[gi] : grainBgLamB[gi];
+      } else {
+        colU32 = grainBgColor[gi];
+      }
+    } else if (mode === 4) {
+      // Boundary band — outer band + core (single phase or lamellar).
+      //   Dark grain-boundary tracing has TWO components that BOTH grow with α:
+      //     1. Voronoi cell boundary line (between neighbour cells) — fixed.
+      //     2. Band-core interface line (α-γ or Fe₃C-γ front) — moves inward
+      //        as the band/precipitate grows, so the tracing visibly tracks
+      //        the cooling-driven precipitation.
+      const md = cellMaxDist[gi] || 1;
+      const normDist = distanceMap[idx] / md;
+      const bt = grainBandThresh[gi];
+      const onePx = Math.max(1.0, MW / 360) / md;
+      if (boundaryMap[idx]) {
+        colU32 = 0xff202020;
+        isBandOrBlob = true;
+      } else if (bt < 1 - onePx && Math.abs(normDist - bt) < onePx) {
+        // band-core interface line (only drawn when a band exists)
+        colU32 = 0xff202020;
+        isBandOrBlob = true;
+      } else if (normDist > bt) {
+        colU32 = grainBandColor[gi];
+        isBandOrBlob = true;
+      } else if (grainCoreIsLam[gi]) {
+        const x = idx % MW, y = (idx / MW) | 0;
+        const proj = (x - grainCx[gi]) * grainCos[gi] + (y - grainCy[gi]) * grainSin[gi];
+        const stripe = Math.floor(proj / grainSpc[gi]);
+        colU32 = (stripe & 1) === 0 ? grainCoreLamA[gi] : grainCoreLamB[gi];
+      } else {
+        colU32 = grainCoreColor[gi];
+      }
+    } else if (mode === 1) {
       const x = idx % MW, y = (idx / MW) | 0;
       const proj = (x - grainCx[gi]) * grainCos[gi] + (y - grainCy[gi]) * grainSin[gi];
       const stripe = Math.floor(proj / grainSpc[gi]);
       colU32 = (stripe & 1) === 0 ? grainLamA[gi] : grainLamB[gi];
-    } else if (grainHasPrec[gi]) {
-      // Needle-like precipitates aligned with each grain's own orientation.
+    } else if (mode === 2) {
       const x = idx % MW, y = (idx / MW) | 0;
       const cosA = grainCos[gi], sinA = grainSin[gi];
       const dx = x - grainCx[gi], dy = y - grainCy[gi];
-      // Rotate pixel into grain-local frame: u along needle direction, v perpendicular
       const u = dx * cosA + dy * sinA;
       const v = -dx * sinA + dy * cosA;
-      // Tile (u, v) into rectangular cells; each cell either has one needle or none
       const cu = Math.floor(u / NEEDLE_CELL_U);
       const cv = Math.floor(v / NEEDLE_CELL_V);
       const uInCell = u - cu * NEEDLE_CELL_U - NEEDLE_CELL_U * 0.5;
@@ -1992,14 +3150,12 @@ function renderMicro(state) {
     } else {
       colU32 = grainPhaseU32[gi];
     }
-    // Only draw the grain boundary line if THIS grain is solid; liquid grains
-    // merge into one uniform pool so no boundaries are shown until nucleation.
-    if (boundaryMap[idx] && grainSolid[gi]) {
-      // Recompute darker tone of current pixel colour
-      const r = colU32 & 0xff;
-      const g8 = (colU32 >>> 8) & 0xff;
-      const b = (colU32 >>> 16) & 0xff;
-      buf32[idx] = (0xff << 24) | ((Math.round(b*0.32) & 0xff) << 16) | ((Math.round(g8*0.32) & 0xff) << 8) | (Math.round(r*0.32) & 0xff);
+    // Draw the Voronoi grain boundary line as a unified dark colour
+    // (0x202020) so it reads the same in every render mode.  Skipped for
+    // pixels that already carry a band/blob outline (which is already dark)
+    // and for pixels in a fully-liquid grain (no grain boundaries in liquid).
+    if (boundaryMap[idx] && grainSolid[gi] && !isBandOrBlob) {
+      buf32[idx] = 0xff202020;
     } else {
       buf32[idx] = colU32;
     }
@@ -2148,11 +3304,17 @@ const KEY_FEATURES = {
     { title:'Solvus curves', body:'α and β solubility shrinks on cooling: secondary precipitates form below the solvus.' },
     { title:'Microstructure at eutectic comp', body:'Pure lamellar α+β colonies — no pro-eutectic phase. Off-eutectic alloys show pro-eutectic grains plus eutectic colonies.' },
   ],
+  fec: [
+    { title:'Three invariant reactions', body:'<span class="num">Peritectic (1493 °C)</span>: L + δ → γ. <span class="num">Eutectic (1147 °C)</span>: L → γ + Fe₃C (ledeburite). <span class="num">Eutectoid (727 °C)</span>: γ → α + Fe₃C (pearlite).' },
+    { title:'The δ-loop', body:'A small closed region of high-T δ-ferrite stable from 1394 to 1538 °C in pure Fe. Adding C shrinks the loop; it disappears entirely above 0.09 wt% C.' },
+    { title:'Steel vs cast iron', body:'Steels lie left of 2.14 wt% C (γ-solubility limit), cast irons right of 2.14. The eutectic at 4.30 wt% C is the lowest-melting Fe–C composition.' },
+    { title:'Hypo vs hyper-eutectoid steel', body:'Below 0.76 % C: pro-eutectoid α nucleates first, then pearlite. Above 0.76 %: pro-eutectoid Fe₃C forms a network, then pearlite inside the cells.' },
+  ],
   niti: [
-    { title:'The classic eutectoid: steel', body:'<span class="num">γ (0.76 % C, 727 °C) → α (0.022 % C) + Fe₃C (6.7 % C)</span>. A single solid (austenite) decomposes isothermally into two new solids.' },
-    { title:'Pearlite', body:'The α + Fe₃C product is a fine lamellar colony of ferrite plates separated by cementite plates — the iconic <b>pearlite</b> microstructure of slowly-cooled carbon steel.' },
-    { title:'Hypo vs hyper-eutectoid', body:'Below 0.76 %C: pro-eutectoid α nucleates first on γ grain boundaries, then pearlite. Above 0.76 %C: pro-eutectoid Fe₃C forms a network, then pearlite inside.' },
-    { title:'Why this matters', body:'Carbon content alone — set by where you sit on this diagram — controls hardness, ductility, and weldability of plain-carbon steel. 0.76 %C is the strongest fully-pearlitic composition.' },
+    { title:'Congruent melting point', body:'γ melts congruently at <span class="num">1310 °C, 44.9 wt% Ti</span> — the central peak where the liquidus has a maximum.' },
+    { title:'Eutectic on the Ni-rich side', body:'<span class="num">L → β + γ at 1125 °C</span> (composition ≈ 33.5 wt% Ti). One liquid splits into two solids on cooling — analogous to the Cu–Ag eutectic.' },
+    { title:'Multiple invariants', body:'A 985 °C isotherm separates γ + L (above) from γ + δ (below). A second isotherm at 940 °C borders the Ti-rich δ field. Toggle the markers to see each invariant point.' },
+    { title:'Why this matters', body:'Near-equiatomic compositions (~44 wt% Ti) produce the technologically important γ (B2-NiTi) phase used in shape-memory alloys and superelastic biomedical devices.' },
   ],
 };
 function buildKeyFeatures() {
@@ -2172,30 +3334,114 @@ function buildKeyFeatures() {
 /* ════════════════════════════════════════════════════════════════════
    TAB SWITCHING
    ──────────────────────────────────────────────────────────────────── */
-const SYSTEMS = { cuni: SYS_CUNI, cuag: SYS_CUAG, niti: SYS_NITI };
+const SYSTEMS = { cuni: SYS_CUNI, cuag: SYS_CUAG, fec: SYS_FEC, niti: SYS_NITI };
 
-const elZoomBtn = document.getElementById('zoom-toggle');
+const elZoomBtnHigh = document.getElementById('zoom-toggle-high');
+const elZoomBtnLow  = document.getElementById('zoom-toggle-low');
+const elInvBtn      = document.getElementById('invariant-toggle');
+
 function syncZoomBtn() {
-  if (!currentSystem.zoomBounds) {
-    elZoomBtn.style.display = 'none';
+  const modes = currentSystem.zoomModes;
+  if (!modes) {
+    elZoomBtnHigh.style.display = 'none';
+    elZoomBtnLow.style.display  = 'none';
     return;
   }
-  elZoomBtn.style.display = '';
-  elZoomBtn.classList.toggle('active', zoomActive);
-  elZoomBtn.textContent = zoomActive ? 'Show full diagram' : 'Zoom: α region';
-}
-elZoomBtn.addEventListener('click', () => {
-  if (!currentSystem.zoomBounds) return;
-  zoomActive = !zoomActive;
-  if (zoomActive && currentSystem.zoomDefault) {
-    dotC = currentSystem.zoomDefault.c;
-    dotT = currentSystem.zoomDefault.T;
+  // High-T toggle
+  if (modes.high) {
+    elZoomBtnHigh.style.display = '';
+    const onHigh = zoomMode === 'high';
+    elZoomBtnHigh.classList.toggle('active', onHigh);
+    elZoomBtnHigh.textContent = onHigh ? 'Show full diagram' : modes.high.label;
   } else {
-    const b = getBounds();
-    dotC = Math.max(b.xMin, Math.min(b.xMax, dotC));
-    dotT = Math.max(b.yMin, Math.min(b.yMax, dotT));
+    elZoomBtnHigh.style.display = 'none';
+  }
+  // Low-T toggle
+  if (modes.low) {
+    elZoomBtnLow.style.display = '';
+    const onLow = zoomMode === 'low';
+    elZoomBtnLow.classList.toggle('active', onLow);
+    elZoomBtnLow.textContent = onLow ? 'Show full diagram' : modes.low.label;
+  } else {
+    elZoomBtnLow.style.display = 'none';
+  }
+}
+function syncInvariantBtn() {
+  if (!currentSystem.hasInvariantToggle) {
+    elInvBtn.style.display = 'none';
+    syncInvariantLegend();
+    return;
+  }
+  elInvBtn.style.display = '';
+  elInvBtn.classList.toggle('active', showInvariantPoints);
+  elInvBtn.textContent = showInvariantPoints ? 'Hide invariant points' : 'Show invariant points';
+  syncInvariantLegend();
+}
+
+/* Populate the legend below the diagram when invariant points are shown. */
+const elInvLegend = document.getElementById('invariant-legend');
+function syncInvariantLegend() {
+  if (!currentSystem.hasInvariantToggle || !showInvariantPoints || !currentSystem.invariantPoints) {
+    elInvLegend.style.display = 'none';
+    elInvLegend.innerHTML = '';
+    return;
+  }
+  // Group points by kind, collect temperatures
+  const groups = new Map();
+  for (const p of currentSystem.invariantPoints) {
+    if (!groups.has(p.kind)) groups.set(p.kind, []);
+    groups.get(p.kind).push(p);
+  }
+  elInvLegend.innerHTML = '';
+  const head = document.createElement('span');
+  head.className = 'head';
+  head.textContent = 'Invariant points';
+  elInvLegend.appendChild(head);
+  for (const [kind, points] of groups) {
+    const chip = document.createElement('span');
+    chip.className = 'inv-chip';
+    const dot = document.createElement('span');
+    dot.className = 'dot';
+    dot.style.background = INVARIANT_COLOR[kind] || '#1a1a1a';
+    chip.appendChild(dot);
+    const label = document.createElement('span');
+    label.textContent = kind;
+    chip.appendChild(label);
+    // Append temperatures (deduped)
+    const temps = [...new Set(points.map(p => p.T))].sort((a,b) => b - a);
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = temps.map(t => t + ' °C').join(', ');
+    chip.appendChild(meta);
+    elInvLegend.appendChild(chip);
+  }
+  elInvLegend.style.display = 'flex';
+}
+function toggleZoom(modeKey) {
+  const modes = currentSystem.zoomModes;
+  if (!modes || !modes[modeKey]) return;
+  // Clicking an already-active zoom button turns it off; otherwise switch to it.
+  zoomMode = (zoomMode === modeKey) ? null : modeKey;
+  if (zoomMode) {
+    const def = modes[zoomMode].default;
+    if (def) { dotC = def.c; dotT = def.T; }
+  } else {
+    // Returning to full view — clamp dot to the system's full bounds.
+    dotC = Math.max(currentSystem.xMin, Math.min(currentSystem.xMax, dotC));
+    dotT = Math.max(currentSystem.yMin, Math.min(currentSystem.yMax, dotT));
   }
   syncZoomBtn();
+  renderAll();
+}
+elZoomBtnHigh.addEventListener('click', () => toggleZoom('high'));
+elZoomBtnLow .addEventListener('click', () => toggleZoom('low'));
+elInvBtn.addEventListener('click', () => {
+  if (!currentSystem.hasInvariantToggle) return;
+  showInvariantPoints = !showInvariantPoints;
+  // Drop any active snap if the user just turned the toggle off — the dot
+  // should fall back to free-roam behaviour at the current position.
+  if (!showInvariantPoints) snappedInvariant = null;
+  syncInvariantBtn();
   renderAll();
 });
 
@@ -2204,10 +3450,13 @@ document.querySelectorAll('.tab[data-tab]').forEach(tab => {
     document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
     tab.classList.add('active');
     currentSystem = SYSTEMS[tab.dataset.tab];
-    zoomActive = false;
+    zoomMode = null;
+    showInvariantPoints = false;
+    snappedInvariant = null;
     dotC = currentSystem.default.c;
     dotT = currentSystem.default.T;
     syncZoomBtn();
+    syncInvariantBtn();
     buildLegend();
     buildKeyFeatures();
     renderAll();
@@ -2227,6 +3476,7 @@ function renderAll() {
 buildLegend();
 buildKeyFeatures();
 syncZoomBtn();
+syncInvariantBtn();
 resizeDia();   // also calls renderAll via ResizeObserver
 resizeMicro(); // builds grain map & renders
 renderAll();
