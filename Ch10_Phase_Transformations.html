@@ -1057,28 +1057,51 @@ function formatTime(tSec) {
       playhead.s ∈ [0, 1]      — arc parameter along A→B→C.                       */
 let viewMode = 'free';
 
-let tttDot = { x: Math.log10(60), y: 680 };
+let tttDot = { x: Math.log10(48.0), y: 547 };   // default: 48.0 s · 547 °C
 
 const PATH_COOL_FRAC = 0.18;   // 18 % of the path is the cooling leg A→B
-const T_AUST_DEFAULT = 800;    // austenitising temperature (above A1)
+const T_AUST_DEFAULT = 790;    // austenitising temperature (above A1)
 const HANDLE_HIT_R   = 12;     // generous hit-radius for B / C / playhead
 const ENDPOINT_R     = 3.5;    // visual radius for B / C end points
 const PLAYHEAD_R     = 6.5;    // visual radius for the playhead dot
+const PATH_AB_LOG_GAP = Math.log10(3);   // A trails B by this in log-time
+                                         // (log 0.30 − log 0.10 = log 3)
 
-let htPath = {
-  T_aust:  T_AUST_DEFAULT,
-  logT_A:  Math.log10(1),       // A: 1 s, just before the quench
-  logT_B:  Math.log10(2),       // B: quench lands at ~ 2 s of clock time
-  T_iso:   680,                 // B: isothermal hold temperature
-  logT_C:  Math.log10(1500),    // C: end of hold (~ 25 min default)
-  // 4-point extras: an additional quench-to-T2 + hold-at-T2 leg added
-  // after C. In 3-point mode these are ignored.
-  T_iso2:  300,                 // T2 — second isothermal hold temperature
-  logT_D:  Math.log10(3.5e4),   // D: end of T2 hold
+/* Per-shape defaults. The path object below holds the active values;
+   switching modes via the path-shape toggle restores the defaults for
+   the new mode and resets the playhead to the spot called out in the
+   shape's "default process".                                          */
+const HT_PATH_DEFAULTS = {
+  '3pt': {
+    T_aust:  T_AUST_DEFAULT,
+    logT_A:  Math.log10(0.10),  // A: 0.10 s
+    logT_B:  Math.log10(0.30),  // B: 0.30 s
+    T_iso:   350,               // B / C: hold at 350 °C
+    logT_C:  Math.log10(7200),  // C: 2 hrs
+    // 4-pt fields kept valid so the object can switch shape later.
+    T_iso2:  145,
+    logT_D:  Math.log10(1200),
+  },
+  '4pt': {
+    T_aust:  T_AUST_DEFAULT,
+    logT_A:  Math.log10(0.10),  // A: 0.10 s
+    logT_B:  Math.log10(0.30),  // B: 0.30 s
+    T_iso:   350,               // B / C: first hold at 350 °C
+    logT_C:  Math.log10(30),    // C: 30 s (end of first hold)
+    T_iso2:  145,               // T2: martempering shelf
+    logT_D:  Math.log10(1200),  // D: 20 min total
+  },
 };
+// Playhead s-values that put the dragging point at the requested
+// (time, T) for each default process.
+const HT_PATH_PLAYHEAD = {
+  '3pt': 0.798,   // (600 s, 350 °C) — 10 min into the hold
+  '4pt': 0.620,   // (30 s, 145 °C)  — exactly at the start of hold 2
+};
+
+let htPath = { ...HT_PATH_DEFAULTS['3pt'] };
 let pathShape = '3pt';          // '3pt' (A→B→C) or '4pt' (A→B→C→D)
-// Start the playhead about two-thirds along the hold leg.
-let playhead = { s: 0.66 };
+let playhead = { s: HT_PATH_PLAYHEAD['3pt'] };
 
 // Which handle (if any) is being dragged.
 // Free mode: null | 'free'.   Path mode: null | 'B' | 'C' | 'play'.
@@ -1484,8 +1507,10 @@ function clampPath() {
   // logT_B bounds — must stay inside the plot
   if (htPath.logT_B < X_MIN + 0.15)       htPath.logT_B = X_MIN + 0.15;
   if (htPath.logT_B > X_MAX - 0.6)        htPath.logT_B = X_MAX - 0.6;
-  // logT_A trails logT_B by a fixed offset (purely visual)
-  htPath.logT_A = htPath.logT_B - 0.45;
+  // logT_A trails logT_B by a fixed log-time gap (so A always sits a
+  // factor-of-3 ahead of B in clock time — the spec defaults put A at
+  // 0.10 s and B at 0.30 s).
+  htPath.logT_A = htPath.logT_B - PATH_AB_LOG_GAP;
   if (htPath.logT_A < X_MIN)              htPath.logT_A = X_MIN;
   // T_aust pinned just under the top so the path is visible
   htPath.T_aust = Math.min(Y_MAX - 10, T_AUST_DEFAULT);
@@ -1826,9 +1851,14 @@ document.getElementById('path-shape-toggle').addEventListener('click', (e) => {
     b.classList.toggle('active', b.dataset.shape === pathShape);
   }
   dragTarget = null;
-  // Re-clamp so the new constraints (D / T_iso2 in 4-pt) snap into valid
-  // ranges, then re-render.
+  // Reset the path geometry to the new shape's default process and put
+  // the playhead at its specified default position. (Whatever the user
+  // had dragged in the previous mode is discarded — the per-shape
+  // defaults are part of the lesson.)
+  Object.assign(htPath, HT_PATH_DEFAULTS[pathShape]);
+  playhead.s = HT_PATH_PLAYHEAD[pathShape];
   clampPath();
+  clampPlayhead();
   renderAll();
 });
 
