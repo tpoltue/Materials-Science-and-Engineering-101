@@ -96,13 +96,22 @@
     display: grid;
     grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
     gap: 14px;
-    align-items: start;
+    /* `stretch` lets the two columns share the same height so the TTT
+       diagram card and the microstructure card align top and bottom. */
+    align-items: stretch;
   }
   @media (max-width: 880px) {
-    .layout { grid-template-columns: 1fr; }
+    .layout { grid-template-columns: 1fr; align-items: start; }
   }
-  .right-stack { display: flex; flex-direction: column; gap: 14px; }
-  .diagram-card { display: flex; flex-direction: column; }
+  /* The microstructure card stack also stretches its first card to fill
+     the column height — otherwise the legend / hardness panels would
+     leave empty space below. */
+  .right-stack {
+    display: flex; flex-direction: column; gap: 14px;
+    height: 100%;
+  }
+  .right-stack > .card { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .diagram-card { display: flex; flex-direction: column; height: 100%; }
   .lever-section {
     margin-top: 14px; padding-top: 14px;
     border-top: 1px solid var(--line);
@@ -139,9 +148,29 @@
   }
   .diagram-header {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 8px; margin-bottom: 6px;
+    gap: 8px; margin-bottom: 6px; flex-wrap: wrap;
   }
   .diagram-header h3 { margin: 0; }
+  /* mode toggle (Free dot ↔ Heat-treatment path) */
+  .view-toggle {
+    display: inline-flex; background: #f0f0f0;
+    border: 1px solid #e2e2e2; border-radius: 999px; padding: 2px;
+  }
+  .view-toggle button {
+    border: none; background: none; padding: 4px 11px;
+    border-radius: 999px;
+    font-family: "IBM Plex Sans Thai Looped", sans-serif;
+    font-size: 11px; font-weight: 700; letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #666; cursor: pointer; transition: background 0.15s, color 0.15s;
+    line-height: 1.2;
+  }
+  .view-toggle button:hover { color: #1a1a1a; }
+  .view-toggle button.active {
+    background: #1a1a1a; color: #fff;
+  }
+  .path-shape-toggle[hidden] { display: none; }
+  .path-shape-toggle { margin-left: 4px; }
   /* ── diagram canvas wrap ── */
   .diagram-wrap {
     background: linear-gradient(180deg, #ffffff 0%, #eef1f5 100%);
@@ -183,6 +212,59 @@
   }
   .leg-chip.active { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
   .leg-chip.active .sw { border-color: rgba(255,255,255,0.4); }
+
+  /* ── product (reaction-product) legend ── */
+  .product-legend {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    margin-top: 6px;
+  }
+  .prod-chip {
+    display: grid;
+    grid-template-columns: 52px 1fr;
+    align-items: center; gap: 10px;
+    padding: 5px 9px; border-radius: 6px;
+    background: #fafafa; border: 1px solid #ececec;
+    font-size: 11px; color: #444;
+    letter-spacing: 0.2px;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+  }
+  .prod-chip.active {
+    background: #1a1a1a; color: #fff; border-color: #1a1a1a;
+  }
+  /* Circular swatch + thumbnail — matches the round-field micrographs.
+     The CSS-painted swatch (γ fallback) and the real PNG thumbnails
+     share the same circular geometry so chip alignment stays consistent. */
+  .prod-chip .swatch,
+  .prod-chip .micro-thumb {
+    width: 48px; height: 48px; border-radius: 50%;
+    border: 1px solid rgba(0,0,0,0.22);
+    background-color: #fff;
+    object-fit: cover;
+    display: block;
+  }
+  .prod-chip .micro-thumb { background-color: #f0f0f0; }
+  .prod-chip .meta { display: flex; flex-direction: column; line-height: 1.25; }
+  .prod-chip .meta .nm { font-weight: 700; letter-spacing: 0.25px; }
+  .prod-chip .meta .ds { font-size: 10.5px; font-weight: 500; opacity: 0.85; }
+  /* Inline visual swatches that mimic the canvas rendering. */
+  .sw-gamma     { background-color: #C8F0C8; }
+  .sw-pearlite  { background-image: repeating-linear-gradient(90deg,
+                    #FFF0A5 0 4px, #C8AFEB 4px 7px); }
+  .sw-bainiteU  { background-image: repeating-linear-gradient(58deg,
+                    #FFF0A5 0 5px, #5a4a8a 5px 7px); }
+  .sw-bainiteL  { background-image: repeating-linear-gradient(58deg,
+                    #FFF0A5 0 2.5px, #4a3d72 2.5px 4px),
+                  repeating-linear-gradient(148deg,
+                    transparent 0 4px, rgba(58,45,90,0.7) 4px 5px);
+                  background-blend-mode: multiply; }
+  .sw-martensite{
+                  background-color: #45425a;
+                  background-image:
+                    repeating-linear-gradient(35deg, transparent 0 4px, #e2d2d8 4px 5px),
+                    repeating-linear-gradient(95deg, transparent 0 4px, #d8c8d2 4px 5px);
+                }
 
   /* ── stage banner ── */
   .stage-banner {
@@ -281,6 +363,9 @@
   .seg-gamma     { background: #6fc46f; }
   .seg-pearliteC { background: linear-gradient(90deg, #d4b04f 0 6px, #8a5fc4 6px 12px); background-size: 12px 100%; }
   .seg-pearliteF { background: linear-gradient(90deg, #d4b04f 0 3px, #8a5fc4 3px 6px); background-size: 6px 100%; }
+  .seg-bainiteU  { background: repeating-linear-gradient(60deg, #8a7ab2 0 5px, #6a5a8e 5px 8px); }
+  .seg-bainiteL  { background: repeating-linear-gradient(60deg, #6a5a8e 0 3px, #4a3d72 3px 5px); }
+  .seg-martensite{ background: repeating-linear-gradient(45deg, #5a5a78 0 4px, #3d3d56 4px 8px); }
 
   /* ── hardness panel ── */
   .hardness-block {
@@ -330,29 +415,6 @@
   }
   .reaction-eqn b { color: #1a1a1a; font-style: normal; }
 
-  /* ── key features grid ── */
-  .key-features {
-    margin-top: 14px;
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 10px;
-  }
-  .feat {
-    background: var(--card-bg); border: 1px solid var(--line); border-radius: 12px;
-    padding: 10px 12px;
-  }
-  .feat h4 {
-    font-family: "IBM Plex Sans Thai Looped", sans-serif;
-    font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;
-    font-size: 12px; margin: 0 0 5px 0; color: #444;
-  }
-  .feat p {
-    margin: 0; font-size: 12.5px; color: #555; line-height: 1.5;
-  }
-  .feat .num {
-    font-family: "JetBrains Mono", "SF Mono", Menlo, monospace;
-    color: #1a1a1a; font-weight: 600;
-  }
-
   /* ── small screens ── */
   @media (max-width: 720px) {
     body { padding: 14px 14px 28px; }
@@ -382,36 +444,54 @@
   </div>
 
   <header class="page-header">
-    <h1>Phase Transformations · Pearlite TTT</h1>
+    <h1>Phase Transformations · TTT — Pearlite, Bainite, Martensite</h1>
     <div class="subtitle">
-      Eutectoid steel (0.76 wt% C) is austenitised above 727 °C, then quenched and held at a constant temperature.
-      Drag the dot anywhere inside the diagram — its time (x) and temperature (y) tell you what fraction of austenite has decomposed into pearlite, and whether it is coarse or fine.
+      Eutectoid steel (0.76 wt% C) is austenitised above 727 °C, then quenched and held at a constant temperature. Drag the dot anywhere inside the diagram — its time (x) and temperature (y) tell you what fraction of austenite has decomposed into pearlite, and whether it is coarse or fine.
     </div>
   </header>
 
   <p class="hint" id="hint">
     <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 14L8 4l6 10M2 8h12"/></svg>
-    <span id="hint-text">Drag the dot to set the isothermal hold (time × temperature). Watch it cross the begin → finish curves to see the pearlite fraction climb from 0 % to 100 %.</span>
+    <span id="hint-text">Drag the dot anywhere on the diagram. Switch the toggle above the plot to <b>Heat-treatment path</b> to draw an A→B→C profile and scrub a playhead along it.</span>
   </p>
 
   <div class="layout">
     <div class="card diagram-card">
       <div class="diagram-header">
         <h3 id="diagram-title">Isothermal TTT · Pearlite reaction — Eutectoid Steel (0.76 wt% C)</h3>
+        <div class="view-toggle" id="view-toggle" role="tablist" aria-label="Diagram interaction mode">
+          <button data-mode="free" class="active" type="button">Free dot</button>
+          <button data-mode="path" type="button">Heat-treatment path</button>
+        </div>
+        <div class="view-toggle path-shape-toggle" id="path-shape-toggle"
+             role="tablist" aria-label="Heat-treatment path shape" hidden>
+          <button data-shape="3pt" class="active" type="button">3-point</button>
+          <button data-shape="4pt" type="button">4-point</button>
+        </div>
       </div>
       <div class="diagram-wrap">
         <canvas id="diagram"></canvas>
       </div>
       <div class="lever-section">
-        <h4 id="lever-h4">Hold State</h4>
+        <h4 id="lever-h4">Playhead State</h4>
         <div class="pt-row">
           <div>
-            <div class="lab" id="lab-x">Time</div>
+            <div class="lab" id="lab-x">Clock time</div>
             <div class="val" id="readout-x">—</div>
           </div>
           <div>
             <div class="lab" id="lab-y">Temperature</div>
             <div class="val" id="readout-y">—</div>
+          </div>
+        </div>
+        <div class="pt-row" id="avrami-row" style="display:none;">
+          <div>
+            <div class="lab">Avrami n</div>
+            <div class="val" id="readout-n">—</div>
+          </div>
+          <div>
+            <div class="lab">Avrami k (s⁻ⁿ)</div>
+            <div class="val" id="readout-k">—</div>
           </div>
         </div>
         <div class="tieline-block">
@@ -429,6 +509,10 @@
           <canvas id="micro"></canvas>
         </div>
         <div class="phase-legend" id="phase-legend"></div>
+        <!-- Reaction-product legend so students can identify each
+             rendered pattern at a glance. Updates active state from
+             the current panel state. -->
+        <div class="product-legend" id="product-legend"></div>
         <div class="stage-banner" id="stage-banner">
           <b id="stage-title">—</b>
           <span id="stage-desc">—</span>
@@ -447,8 +531,6 @@
       </div>
     </div>
   </div>
-
-  <div class="key-features" id="key-features"></div>
 
 </div>
 
@@ -470,22 +552,12 @@ function ensureSlopes(arr) {
   if (n < 2) { arr._slopes = [0]; return arr._slopes; }
   const d = new Array(n-1), m = new Array(n);
   for (let i = 0; i < n-1; i++) d[i] = (arr[i+1].y - arr[i].y) / (arr[i+1].x - arr[i].x);
+  // Catmull-Rom-style: per-point slope is the average of the two adjacent
+  // segment slopes. Endpoints use one-sided slopes. This produces a visibly
+  // smoother curve through dense, monotone-T anchors than a Fritsch–Carlson
+  // monotonicity clamp (which can introduce visible elbows at slope changes).
   m[0] = d[0]; m[n-1] = d[n-2];
-  for (let i = 1; i < n-1; i++) {
-    if (d[i-1] * d[i] <= 0) m[i] = 0;
-    else m[i] = (d[i-1] + d[i]) / 2;
-  }
-  // Fritsch-Carlson monotonicity enforcement
-  for (let i = 0; i < n-1; i++) {
-    if (d[i] === 0) { m[i] = 0; m[i+1] = 0; continue; }
-    const a = m[i] / d[i], b = m[i+1] / d[i];
-    const s = a*a + b*b;
-    if (s > 9) {
-      const tau = 3 / Math.sqrt(s);
-      m[i]   = tau * a * d[i];
-      m[i+1] = tau * b * d[i];
-    }
-  }
+  for (let i = 1; i < n-1; i++) m[i] = (d[i-1] + d[i]) / 2;
   arr._slopes = m;
   return m;
 }
@@ -528,36 +600,108 @@ const PHASE_HEX = {
 
 /* ════════════════════════════════════════════════════════════════════
    TTT CURVES — Eutectoid steel (0.76 wt% C)
-   x = log10(time / s)   y = temperature (°C)
-   Two C-curves: 1 % start and 99 % finish.
-   Classic nose ~ 540 °C / ~1 s.
+   Dense point sampling read off the textbook diagram (Callister-style)
+   with ~ 5–15 °C spacing so the Hermite spline interpolator produces a
+   smooth curve through every anchor without slope-discontinuity bumps.
+   Anchors include the textbook reference reading at 680 °C
+   (red 25 s · green 400 s).
    ──────────────────────────────────────────────────────────────────── */
 const A1 = 727;                  // eutectoid temperature
-const PEARL_NOSE_T = 525;        // bottom of the pearlite C-curves (image)
+const PEARL_BAINITE_T = 525;     // boundary between pearlite (above) and bainite (below)
+const BAINITE_UL_T    = 350;     // upper-bainite / lower-bainite split
+const PEARL_NOSE_T    = PEARL_BAINITE_T; // back-compat alias
 
-/* TTT curves — eutectoid steel · pearlite reaction
-   Each entry: { x: T (°C), y: log10(t/s) }. Sorted by T ascending.
-   Sparse anchor points (six per curve) chosen so logT slope d(logT)/dT is
-   strictly monotonic — gives a smooth Hermite spline with no wobble.
-   Anchors match the textbook image: nose at ~ 525 °C / 1 s,
-   "680 °C reads as 25 / 100 / 400 s" dashed-line marker, asymptote to A₁. */
-const TTT_BEGIN = [   // ~ 0 % pearlite — red curve
-  {x: 525, y: Math.log10(0.85)},   // nose
+const TTT_BEGIN = [
+  // bainite limb — long times near M_start, shortening through upper bainite
+  { x: 255, y: Math.log10(1200) },
+  { x: 270, y: Math.log10(450)  },
+  { x: 290, y: Math.log10(160)  },
+  { x: 310, y: Math.log10(55)   },
+  { x: 330, y: Math.log10(20)   },
+  { x: 350, y: Math.log10(8.5)  },
+  { x: 370, y: Math.log10(4.5)  },
+  { x: 390, y: Math.log10(2.6)  },
+  { x: 410, y: Math.log10(1.7)  },
+  { x: 430, y: Math.log10(1.15) },
+  { x: 450, y: Math.log10(0.85) },
+  { x: 470, y: Math.log10(0.65) },
+  { x: 490, y: Math.log10(0.52) },
+  { x: 510, y: Math.log10(0.48) },   // overall nose ≈ 510 °C
+  { x: 525, y: Math.log10(0.50) },   // pearlite-bainite divider
+  { x: 540, y: Math.log10(0.58) },
+  { x: 555, y: Math.log10(0.72) },
+  { x: 570, y: Math.log10(0.95) },
+  { x: 585, y: Math.log10(1.30) },
+  { x: 600, y: Math.log10(1.85) },
+  { x: 615, y: Math.log10(2.70) },
+  { x: 630, y: Math.log10(4.20) },
+  { x: 645, y: Math.log10(6.80) },
+  { x: 655, y: Math.log10(10.0) },
+  { x: 665, y: Math.log10(15.5) },
+  { x: 672, y: Math.log10(21.0) },
+  { x: 678, y: Math.log10(28.0) },
+  { x: 684, y: Math.log10(40.0) },
+  { x: 690, y: Math.log10(60.0) },
+  { x: 696, y: Math.log10(100)  },
+  { x: 702, y: Math.log10(180)  },
+  { x: 708, y: Math.log10(360)  },
+  { x: 714, y: Math.log10(900)  },
+  { x: 720, y: Math.log10(3500) },
+  { x: 723, y: Math.log10(1.2e4)},
+  { x: 725, y: Math.log10(5.5e4)},
+];
+
+const TTT_FINISH = [
+  { x: 255, y: Math.log10(1.5e4)},
+  { x: 270, y: Math.log10(6000) },
+  { x: 290, y: Math.log10(2500) },
+  { x: 310, y: Math.log10(900)  },
+  { x: 330, y: Math.log10(330)  },
+  { x: 350, y: Math.log10(130)  },
+  { x: 370, y: Math.log10(60)   },
+  { x: 390, y: Math.log10(32)   },
+  { x: 410, y: Math.log10(19)   },
+  { x: 430, y: Math.log10(12)   },
+  { x: 450, y: Math.log10(8.0)  },
+  { x: 470, y: Math.log10(5.8)  },
+  { x: 490, y: Math.log10(4.6)  },
+  { x: 510, y: Math.log10(4.0)  },   // nose ≈ 510 °C
+  { x: 525, y: Math.log10(3.9)  },
+  { x: 540, y: Math.log10(4.3)  },
+  { x: 555, y: Math.log10(5.3)  },
+  { x: 570, y: Math.log10(7.0)  },
+  { x: 585, y: Math.log10(9.5)  },
+  { x: 600, y: Math.log10(13.5) },
+  { x: 615, y: Math.log10(20)   },
+  { x: 630, y: Math.log10(30)   },
+  { x: 645, y: Math.log10(50)   },
+  { x: 655, y: Math.log10(75)   },
+  { x: 665, y: Math.log10(125)  },
+  { x: 672, y: Math.log10(180)  },
+  { x: 678, y: Math.log10(275)  },
+  { x: 684, y: Math.log10(450)  },
+  { x: 690, y: Math.log10(800)  },
+  { x: 696, y: Math.log10(1700) },
+  { x: 702, y: Math.log10(4000) },
+  { x: 706, y: Math.log10(9000) },
+  { x: 710, y: Math.log10(2.5e4)},
+];
+
+function tBeginAtT(T)  { return Math.pow(10, interp(TTT_BEGIN,  T)); }
+function tFinishAtT(T) { return Math.pow(10, interp(TTT_FINISH, T)); }
+
+
+/* The old data-table curves are no longer used in the model; they remain
+   here only for archival reference / quick comparison. */
+const TTT_BEGIN_LEGACY = [
+  {x: 525, y: Math.log10(0.85)},
   {x: 580, y: Math.log10(1.4)},
   {x: 640, y: Math.log10(6.5)},
   {x: 680, y: Math.log10(25)},
   {x: 710, y: Math.log10(350)},
   {x: 725, y: Math.log10(5.0e4)},
 ];
-const TTT_HALF = [    // 50 % pearlite — blue dashed curve
-  {x: 530, y: Math.log10(2.5)},
-  {x: 580, y: Math.log10(4.5)},
-  {x: 640, y: Math.log10(18)},
-  {x: 680, y: Math.log10(100)},
-  {x: 705, y: Math.log10(1.5e3)},
-  {x: 720, y: Math.log10(5.0e4)},
-];
-const TTT_FINISH = [  // ~ 100 % pearlite — green curve
+const TTT_FINISH_LEGACY = [
   {x: 535, y: Math.log10(5.2)},
   {x: 580, y: Math.log10(8.5)},
   {x: 640, y: Math.log10(36)},
@@ -566,38 +710,85 @@ const TTT_FINISH = [  // ~ 100 % pearlite — green curve
   {x: 705, y: Math.log10(8.0e4)},
 ];
 
-/* ─── Hardness model (HV) — pearlite-only chapter
-   Coarse pearlite (high-T) is the softest; fine pearlite (just above the
-   nose, ~ 540–620 °C) is the hardest pearlite. The hardness bar in the UI
-   spans 150 → 350 HV to match. */
-const HV = {
-  'γ': 180,                 // displayed only when alloy is "still hot"
-  'pearlite-coarse': 200,
-  'pearlite-fine':   320,
-};
+/* ─── Pearlite morphology (continuous in T) ─────────────────────────
+   Interlamellar spacing and hardness both vary smoothly with formation
+   temperature. We linearly interpolate between the two limits:
+     • A1 (727 °C) → widest spacing, lowest hardness (very coarse pearlite)
+     • Nose (525 °C) → tightest spacing, highest hardness (very fine pearlite)
+   The "Coarse" / "Fine" labels remain useful as descriptive ranges, but
+   the renderer and hardness bar see a continuous spectrum.                */
+const HV_COARSE = 180;     // pearlite at A1
+const HV_FINE   = 340;     // pearlite at the nose
+const HV_GAMMA  = 180;     // austenite (room-T-equivalent)
+const HV_BAINITE_UPPER = 400; // upper bainite (350–525 °C)
+const HV_BAINITE_LOWER = 550; // lower bainite (250–350 °C)
+const HV_MARTENSITE    = 720; // virgin (untempered) martensite
 
-/* Pearlite morphology by formation temperature.
-   Above ~ 620 °C interlamellar spacing is wide → coarse pearlite (~ 200 HV).
-   Below ~ 620 °C nucleation is plentiful and spacing is fine (~ 320 HV).    */
-function pearliteMorph(T) {
-  if (T >= 620) return 'pearlite-coarse';
-  return 'pearlite-fine';
+function pearliteT01(T) {
+  // 0 at A1 (coarsest), 1 at the nose (finest); clamped.
+  return Math.max(0, Math.min(1, (A1 - T) / (A1 - PEARL_BAINITE_T)));
 }
-function pearliteName(T) {
-  return T >= 620 ? 'Coarse Pearlite' : 'Fine Pearlite';
+function pearliteHV(T) {
+  return HV_COARSE + (HV_FINE - HV_COARSE) * pearliteT01(T);
 }
-function pearliteSeg(T) {
-  return T >= 620 ? 'seg-pearliteC' : 'seg-pearliteF';
+/* Interlamellar spacing in CSS pixels, given the canvas size MW. The
+   ratio MW/24 (widest) → MW/64 (tightest) matches what looked right in
+   the old discrete coarse / fine split, just continuous now.            */
+function pearliteSpacing(T, MW) {
+  const t = pearliteT01(T);
+  const spA1   = MW / 24;
+  const spNose = MW / 64;
+  return spA1 + (spNose - spA1) * t;
+}
+/* Display label — keep a coarse / fine handoff at the historical 620 °C
+   so the side-panel text still reads naturally, but it no longer drives
+   spacing or hardness. */
+function pearliteName(T) { return T >= 620 ? 'Coarse Pearlite' : 'Fine Pearlite'; }
+/* Colour key for the lever-bar fraction segment — also smoothed by t. */
+function pearliteSeg(T)  { return T >= 620 ? 'seg-pearliteC' : 'seg-pearliteF'; }
+function pearliteMorph(T){ return T >= 620 ? 'pearlite-coarse' : 'pearlite-fine'; }
+
+/* ── Bainite (250 °C ≤ T ≤ 525 °C) ──────────────────────────────────
+   Upper bainite (T ≥ 350 °C): feathery / lath-like sheaves with carbide
+   films between ferrite laths. Lower bainite (T < 350 °C): finer plate-
+   like α with intra-plate carbide arrays. Hardness rises monotonically
+   as T drops (finer scale).                                            */
+function bainiteIsUpper(T) { return T >= BAINITE_UL_T; }
+function bainiteName(T)    { return bainiteIsUpper(T) ? 'Upper Bainite' : 'Lower Bainite'; }
+function bainiteSeg(T)     { return bainiteIsUpper(T) ? 'seg-bainiteU'  : 'seg-bainiteL'; }
+function bainiteMorph(T)   { return bainiteIsUpper(T) ? 'bainite-upper' : 'bainite-lower'; }
+function bainiteHV(T) {
+  // Linear in T across the bainite band.
+  const u = Math.max(0, Math.min(1,
+    (PEARL_BAINITE_T - T) / (PEARL_BAINITE_T - M_START_T)));
+  return HV_BAINITE_UPPER + (HV_BAINITE_LOWER - HV_BAINITE_UPPER) * u;
+}
+
+/* ── Martensite (T ≤ M_START_T) ──────────────────────────────────────
+   Athermal: fraction depends only on T (Koistinen-Marburger), not time.
+   Needle-like (acicular) lath structure for a 0.76 % C alloy.          */
+function martensiteFractionAtT(T) {
+  if (T >= M_START_T) return 0;
+  if (T <= M_FINISH_T) return 1;
+  // Koistinen-Marburger between M_S and M_F, then *renormalised* so the
+  // M(90 %) tick line sits at f = 1 exactly (no retained-γ shelf left
+  // beyond the labelled completion isotherm). Without this, the raw
+  // exponential plateaus at f = 0.9 and the user sees stray austenite
+  // below the bottom isotherm.
+  const alpha = -Math.log(1 - 0.9) / (M_START_T - M_FINISH_T);
+  const raw   = 1 - Math.exp(-alpha * (M_START_T - T));
+  return Math.max(0, Math.min(1, raw / 0.9));
 }
 
 /* ════════════════════════════════════════════════════════════════════
    COORDINATE SYSTEM (log-x, linear-y)
    Diagram canvas world: x = log10(time/s), y = T (°C)
    ──────────────────────────────────────────────────────────────────── */
-const X_MIN = 0;                      // 1 s — match the textbook figure
-const X_MAX = Math.log10(13 * 3600);  // 13 hr = 46 800 s ≈ 10^4.67
-const Y_MIN = 450;                    // °C
-const Y_MAX = 750;
+const X_MIN = -1;                     // 10⁻¹ s — exposes the nose at ~0.5 s
+const X_MAX = 5;                      // 10⁵ s ≈ 27.8 hr — covers the full
+                                      //                   bainite-finish limb
+const Y_MIN = 100;                    // °C — extends below M(90 %) so all
+const Y_MAX = 800;                    //       martensite isotherms are visible
 
 let DW = 0, DH = 0;     // diagram canvas pixel size
 function fontScale() {
@@ -629,7 +820,6 @@ function pxToWorld(px, py) {
    ──────────────────────────────────────────────────────────────────── */
 const diaCanvas = document.getElementById('diagram');
 const diaCtx    = diaCanvas.getContext('2d');
-let dragging    = false;
 
 function resizeDia() {
   const dpr = window.devicePixelRatio || 1;
@@ -644,15 +834,18 @@ function resizeDia() {
 }
 new ResizeObserver(resizeDia).observe(diaCanvas);
 
-/* Curves are stored as { x: T, y: logT } sorted by T ascending.
-   So `interp(arr, T)` returns logT. We iterate over T and plot (logT, T). */
+/* Draw a TTT C-curve defined by {x:T, y:log10(t)} data. We iterate over T
+   from the data's first to last anchor and interpolate the log-time with
+   a monotone Hermite spline, then plot (logT, T). This gives a smooth
+   curve through every anchor with no wobble — perfect for the textbook
+   begin / half / finish C-shapes. */
 function drawCurve(arr, color='#444', lw=1.8, dash=null) {
   diaCtx.strokeStyle = color;
   diaCtx.lineWidth = lw;
   if (dash) diaCtx.setLineDash(dash); else diaCtx.setLineDash([]);
   diaCtx.beginPath();
-  const N = 200;
-  const tLo = arr[0].x, tHi = arr[arr.length-1].x;
+  const N = 240;
+  const tLo = arr[0].x, tHi = arr[arr.length - 1].x;
   for (let i = 0; i <= N; i++) {
     const T = tLo + (tHi - tLo) * i / N;
     const logT = interp(arr, T);
@@ -721,7 +914,7 @@ function drawAxes() {
   diaCtx.font = fpx(13.5) + 'px "JetBrains Mono", "SF Mono", monospace';
   diaCtx.textAlign = 'right';
   diaCtx.textBaseline = 'middle';
-  for (let T = 450; T <= 750; T += 50) {
+  for (let T = 100; T <= 800; T += 50) {
     const [, py] = diaToPx(X_MIN, T);
     diaCtx.strokeStyle = '#e0e0e0'; diaCtx.lineWidth = 1;
     diaCtx.beginPath();
@@ -805,66 +998,34 @@ function drawDot(xLog, T, withGuide=true) {
   diaCtx.stroke();
 }
 
-function drawDotLabel(text) {
-  // floating label pinned to the bottom-right corner of the plot
+function drawDotLabel(text, xLog, T) {
+  // Floating label that follows the cursor / playhead. Positioned just
+  // above-right of the point by default; flipped to above-left / below
+  // when needed so the box never escapes the plot rectangle.
   const r = plotRect();
-  diaCtx.font = '700 ' + fpx(14) + 'px "JetBrains Mono", "SF Mono", monospace';
-  diaCtx.textAlign = 'right';
+  diaCtx.font = '700 ' + fpx(13) + 'px "JetBrains Mono", "SF Mono", monospace';
+  diaCtx.textAlign = 'left';
   diaCtx.textBaseline = 'middle';
-  const pad = 8;
+  const pad = 7;
   const tw = diaCtx.measureText(text).width;
-  const boxW = tw + pad*2;
-  const boxH = 26;
-  const bx = r.x1 - boxW - 6;
-  const by = r.y1 - boxH - 6;
+  const boxW = tw + pad * 2;
+  const boxH = 22;
+  const offset = 14;
+  const [px, py] = diaToPx(xLog, T);
+  // Default: above-right of the point.
+  let bx = px + offset;
+  let by = py - boxH - offset / 2;
+  if (bx + boxW > r.x1 - 4)         bx = px - offset - boxW;  // flip to left
+  if (by < r.y0 + 4)                by = py + offset / 2;     // flip to below
+  bx = Math.max(r.x0 + 4, Math.min(r.x1 - boxW - 4, bx));
+  by = Math.max(r.y0 + 4, Math.min(r.y1 - boxH - 4, by));
   diaCtx.fillStyle = 'rgba(255,255,255,0.96)';
   diaCtx.fillRect(bx, by, boxW, boxH);
-  diaCtx.strokeStyle = 'rgba(0,0,0,0.22)';
+  diaCtx.strokeStyle = 'rgba(0,0,0,0.25)';
   diaCtx.lineWidth = 1;
   diaCtx.strokeRect(bx + 0.5, by + 0.5, boxW - 1, boxH - 1);
   diaCtx.fillStyle = '#1a1a1a';
-  diaCtx.fillText(text, bx + boxW - pad, by + boxH/2);
-}
-
-/* Curve legend — pinned to the bottom-left corner of the plot. Replaces the
-   in-plot "Begin / 50 % / Completion" labels (which were getting cut off at
-   the edges of the canvas at small viewport widths). */
-function drawCurveLegend() {
-  const r = plotRect();
-  const entries = [
-    { label: 'Begin (~0 %)',        color: '#c43c3c', dash: false },
-    { label: 'Completion (~100 %)', color: '#3d8a4f', dash: false },
-  ];
-  diaCtx.font = '700 ' + fpx(13) + 'px "IBM Plex Sans Thai Looped", sans-serif';
-  diaCtx.textBaseline = 'middle';
-  diaCtx.textAlign = 'left';
-  const padX = 10, padY = 8, rowH = 19, swatchW = 22;
-  let maxTw = 0;
-  for (const e of entries) maxTw = Math.max(maxTw, diaCtx.measureText(e.label).width);
-  const boxW = maxTw + swatchW + padX*3 + 4;
-  const boxH = rowH * entries.length + padY*2 - 2;
-  const bx = r.x0 + 6;
-  const by = r.y1 - boxH - 6;
-  diaCtx.fillStyle = 'rgba(255,255,255,0.96)';
-  diaCtx.fillRect(bx, by, boxW, boxH);
-  diaCtx.strokeStyle = 'rgba(0,0,0,0.22)';
-  diaCtx.lineWidth = 1;
-  diaCtx.strokeRect(bx + 0.5, by + 0.5, boxW - 1, boxH - 1);
-  for (let i = 0; i < entries.length; i++) {
-    const e = entries[i];
-    const cy = by + padY + rowH * i + rowH/2 - 4;
-    // colour swatch line
-    diaCtx.strokeStyle = e.color;
-    diaCtx.lineWidth = 2.6;
-    if (e.dash) diaCtx.setLineDash([5, 4]); else diaCtx.setLineDash([]);
-    diaCtx.beginPath();
-    diaCtx.moveTo(bx + padX, cy);
-    diaCtx.lineTo(bx + padX + swatchW, cy);
-    diaCtx.stroke();
-    diaCtx.setLineDash([]);
-    diaCtx.fillStyle = '#1a1a1a';
-    diaCtx.fillText(e.label, bx + padX + swatchW + padX, cy);
-  }
+  diaCtx.fillText(text, bx + pad, by + boxH / 2);
 }
 
 function formatTime(tSec) {
@@ -876,105 +1037,473 @@ function formatTime(tSec) {
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   STATE — draggable dot (logTime, T) for the isothermal hold
+   STATE — view mode + free dot + heat-treatment path
    ──────────────────────────────────────────────────────────────────── */
-// Default position: 680 °C / 60 s — between the 50 % and finish curves,
-// so the user sees a partial-pearlite microstructure on first load.
+/*  viewMode: 'free'  → single draggable dot anywhere on the diagram (default)
+              'path'  → editable A → B → C cooling-and-hold profile with a
+                        scrubbable playhead. Only this mode draws the path
+                        and only this mode triggers the cooling-incubation
+                        grain-refinement visual.
+
+    Free-dot mode:
+      tttDot.{x, y}   the (log time, temperature) point being evaluated.
+
+    Path mode:
+      A : austenitising start  — fixed at (logT_A, T_aust). Drawn but not draggable.
+      B : quench landing       — corner of the L. User-draggable. Sets T_iso and
+                                 the clock-time at which the hold begins.
+      C : end of hold          — right end of the horizontal segment. User-draggable
+                                 along x only (its T is locked to B's T).
+      playhead.s ∈ [0, 1]      — arc parameter along A→B→C.                       */
+let viewMode = 'free';
+
 let tttDot = { x: Math.log10(60), y: 680 };
 
+const PATH_COOL_FRAC = 0.18;   // 18 % of the path is the cooling leg A→B
+const T_AUST_DEFAULT = 800;    // austenitising temperature (above A1)
+const HANDLE_HIT_R   = 12;     // generous hit-radius for B / C / playhead
+const ENDPOINT_R     = 3.5;    // visual radius for B / C end points
+const PLAYHEAD_R     = 6.5;    // visual radius for the playhead dot
+
+let htPath = {
+  T_aust:  T_AUST_DEFAULT,
+  logT_A:  Math.log10(1),       // A: 1 s, just before the quench
+  logT_B:  Math.log10(2),       // B: quench lands at ~ 2 s of clock time
+  T_iso:   680,                 // B: isothermal hold temperature
+  logT_C:  Math.log10(1500),    // C: end of hold (~ 25 min default)
+  // 4-point extras: an additional quench-to-T2 + hold-at-T2 leg added
+  // after C. In 3-point mode these are ignored.
+  T_iso2:  300,                 // T2 — second isothermal hold temperature
+  logT_D:  Math.log10(3.5e4),   // D: end of T2 hold
+};
+let pathShape = '3pt';          // '3pt' (A→B→C) or '4pt' (A→B→C→D)
+// Start the playhead about two-thirds along the hold leg.
+let playhead = { s: 0.66 };
+
+// Which handle (if any) is being dragged.
+// Free mode: null | 'free'.   Path mode: null | 'B' | 'C' | 'play'.
+let dragTarget = null;
+/* Martensite — diffusionless, athermal: forms purely as a function of T,
+   no time dependence. Three landmark isotherms shown on the diagram. */
+const M_START_T  = 250;
+const M_50_T     = 200;
+const M_FINISH_T = 160;
+
 /* ════════════════════════════════════════════════════════════════════
-   TTT — getState given dot (xLog, T)
+   AVRAMI (Johnson–Mehl–Avrami)
+   f(t) = 1 − exp(−k·tⁿ)
+   At each temperature T, (k, n) are fitted so the Avrami curve passes
+   through:
+     • t_begin               → 1 % transformed (red C-curve)
+     • sqrt(t_begin·t_finish)→ 50 % transformed (log-mean of the two
+                                C-curves — i.e. the visual midpoint
+                                between begin and finish, which is how
+                                textbook 50 % curves are drawn)
+   Two unknowns, two equations: ln(−ln(1−f)) = ln(k) + n·ln(t) at both
+   anchors is a linear solve in log–log space. f at t_finish then lands
+   at ≈ 100 % (a few parts per 10⁴), matching the "completion" label.
    ──────────────────────────────────────────────────────────────────── */
-/* Pearlite transformation fraction at (t, T), anchored on the begin / 50% /
-   finish curves. Within (begin, half) the fraction sweeps 0 → 50 % linearly
-   in log-time; within (half, finish) it sweeps 50 → 100 % linearly in log-t.
-   This piecewise-log interpolation matches the textbook completion curves. */
-function pearliteFraction(tBegin, tHalf, tFinish, t) {
-  if (t <= tBegin)  return 0;
-  if (t >= tFinish) return 1;
-  const logT = Math.log10(t);
-  if (t <= tHalf) {
-    return 0.5 * (logT - Math.log10(tBegin)) / (Math.log10(tHalf) - Math.log10(tBegin));
-  }
-  return 0.5 + 0.5 * (logT - Math.log10(tHalf)) / (Math.log10(tFinish) - Math.log10(tHalf));
+const AVR_F_BEGIN  = 0.01;
+const AVR_F_HALF   = 0.50;
+const AVR_Y_BEGIN  = Math.log(-Math.log(1 - AVR_F_BEGIN));   // ≈ −4.60
+const AVR_Y_HALF   = Math.log(-Math.log(1 - AVR_F_HALF));    // ≈ −0.367
+
+function avramiFit(tBegin, tFinish) {
+  const xB = Math.log(tBegin), xF = Math.log(tFinish);
+  const xH = 0.5 * (xB + xF);            // log-mean → 50 % anchor
+  const n  = (AVR_Y_HALF - AVR_Y_BEGIN) / (xH - xB);
+  const lnK = AVR_Y_BEGIN - n * xB;
+  return { k: Math.exp(lnK), n };
+}
+function avramiFraction(k, n, t) {
+  if (t <= 0) return 0;
+  const kt = k * Math.pow(t, n);
+  if (kt > 80) return 1;
+  return 1 - Math.exp(-kt);
+}
+function avramiTime(k, n, f) {
+  return Math.pow(-Math.log(1 - f) / k, 1 / n);
 }
 
-function getStateTTT(xLog, T) {
-  const t = Math.pow(10, xLog);
+/* ════════════════════════════════════════════════════════════════════
+   TTT — getState given (xLog, T) and effective Avrami hold time
+   ──────────────────────────────────────────────────────────────────── */
+
+/* Returns { tBegin, tFinish, k, n } at any T inside the diffusional
+   reaction window — pearlite (525–727 °C) AND bainite (250–525 °C).
+   Below M_S the transformation is athermal (martensite); above A₁ γ
+   is stable. Both edges return null. */
+function avramiAtT(T) {
+  if (T >= A1 || T <= M_START_T) return null;
+  const tBegin  = tBeginAtT(T);
+  const tFinish = tFinishAtT(T);
+  const { k, n } = avramiFit(tBegin, tFinish);
+  return { tBegin, tFinish, k, n };
+}
+
+/* Which diffusional product forms at this T — pearlite or bainite. */
+function isBainiteT(T) { return T > M_START_T && T < PEARL_BAINITE_T; }
+function isPearliteT(T){ return T >= PEARL_BAINITE_T && T < A1; }
+function diffusionalProduct(T) {
+  if (isPearliteT(T)) return { kind:'pearlite', name: pearliteName(T), seg: pearliteSeg(T),
+                                morph: pearliteMorph(T), hv: pearliteHV(T) };
+  if (isBainiteT(T))  return { kind:'bainite',  name: bainiteName(T),  seg: bainiteSeg(T),
+                                morph: bainiteMorph(T),  hv: bainiteHV(T)  };
+  return null;
+}
+
+/* Build the state shown in the side panel & microstructure.
+   `xLog`           — current x position of the playhead (log s, plot coord)
+   `T`              — current temperature of the playhead (°C)
+   `holdElapsed_s`  — time (in seconds) the alloy has spent at T_iso so far.
+                      During cooling A→B this is 0. During hold B→D it grows
+                      linearly with clock time. This is what feeds Avrami —
+                      not the raw plot-time, because the alloy was still hot
+                      before the quench landed.
+   `phase`          — 'cooling' | 'hold' — which path leg we are on. */
+function getStateTTT(xLog, T, holdElapsed_s, phase) {
+  const tClock = Math.pow(10, xLog);
   // Above eutectoid → austenite is the stable phase, nothing to nucleate.
   if (T >= A1) {
     return {
-      stageTitle: 'Austenite (stable)',
-      stageDesc: `Above the eutectoid temperature (727 °C). γ is the equilibrium phase — no driving force for pearlite. Hold here as long as you like and nothing transforms.`,
+      stageTitle: 'Austenite (stable) — austenitising',
+      stageDesc: `T = ${T.toFixed(0)} °C is above the eutectoid (727 °C). γ is the equilibrium phase — no driving force for pearlite. Grains coarsen slowly here; quench to drop below A₁ and start the clock.`,
       phases: [{ name:'γ (austenite)', frac:1, seg:'seg-gamma', color: PHASE_HEX['γ'] }],
-      hv: HV['γ'],
+      hv: HV_GAMMA,
       activePhases: ['γ'],
       reactionEqn: '',
-      grainStates: { mode: 'allGamma' },
+      grainStates: { mode: 'allGamma', T },
     };
   }
-  // Below the C-curve nose (~ 525 °C). The pearlite reaction is suppressed —
-  // in real eutectoid steel this is the bainite / martensite range, which
-  // sits outside this chapter's scope.
-  if (T < PEARL_NOSE_T) {
+  // Grain density is driven by the current temperature itself — the
+  // renderer maps T → one of the pre-baked density levels, so the user
+  // sees prior-γ grains gradually refine as the alloy cools, in both
+  // free-dot and heat-treatment-path modes.
+
+  // Cooling leg A→B: still all γ, but the renderer now uses T to pick
+  // a finer-grained pattern as cooling progresses (smooth refinement).
+  if (phase === 'cooling') {
     return {
-      stageTitle: 'Austenite (unstable) — below pearlite range',
-      stageDesc: `Below ~ 525 °C the pearlite C-curve doesn't apply: diffusion is too sluggish for lamellar growth and a different mechanism (bainite, then martensite at lower T) takes over. Those products are covered in the next chapter.`,
+      stageTitle: 'Quench — cooling toward T_iso',
+      stageDesc: `Crossing the eutectoid line on the way down to ${T.toFixed(0)} °C. γ is now thermodynamically unstable. The clock on pearlite nucleation only starts when the temperature settles at the isothermal hold; meanwhile the prior-γ grains refine (more, smaller grains) as the alloy loses heat.`,
       phases: [{ name:'γ (austenite, unstable)', frac:1, seg:'seg-gamma', color: PHASE_HEX['γ'] }],
-      hv: HV['γ'],
+      hv: HV_GAMMA,
       activePhases: ['γ'],
       reactionEqn: '',
-      grainStates: { mode: 'allGamma' },
+      grainStates: { mode: 'allGamma', T },
     };
   }
-  // Pearlite reaction window — between the nose and A₁.
-  const tBegin  = Math.pow(10, interp(TTT_BEGIN,  T));
-  const tHalf   = Math.pow(10, interp(TTT_HALF,   T));
-  const tFinish = Math.pow(10, interp(TTT_FINISH, T));
-  const frac    = pearliteFraction(tBegin, tHalf, tFinish, t);
-  const product = pearliteMorph(T);
-  const productName = pearliteName(T);
-  const segKey  = pearliteSeg(T);
-  const eqn = '<b>γ</b> (0.76 %C) → <b>α</b> (0.022 %C) + <b>Fe₃C</b> (6.7 %C)<br><span style="font-style:italic">eutectoid · diffusional · lamellar pearlite</span>';
+  // Martensite zone (T ≤ M_start) — athermal/diffusionless. Fraction
+  // depends only on T, never on hold time. No begin/finish curves apply.
+  if (T <= M_START_T) {
+    const mFrac = martensiteFractionAtT(T);
+    if (mFrac < 0.005) {
+      return {
+        stageTitle: 'Austenite (unstable) — at M_start',
+        stageDesc: `T = ${T.toFixed(0)} °C is right at M_start (${M_START_T} °C). Drop a little further and γ starts shearing into martensite — instantly, with no time dependence.`,
+        phases: [{ name:'γ (austenite, unstable)', frac:1, seg:'seg-gamma', color: PHASE_HEX['γ'] }],
+        hv: HV_GAMMA, activePhases: ['γ'], reactionEqn: '',
+        grainStates: { mode:'allGamma', T },
+      };
+    }
+    const gFrac = 1 - mFrac;
+    return {
+      stageTitle: mFrac >= 0.995 ? 'Martensite — fully transformed'
+                                 : `Partial — γ + Martensite (${(mFrac*100).toFixed(0)} %)`,
+      stageDesc: `T = ${T.toFixed(0)} °C; ${(mFrac*100).toFixed(0)} % of γ has sheared into martensite. The reaction is diffusionless — time on the x-axis is irrelevant here; what matters is how far below M_start (${M_START_T} °C) the alloy has fallen. M(50 %) ≈ ${M_50_T} °C, M(90 %) ≈ ${M_FINISH_T} °C.`,
+      phases: gFrac > 0.005 ? [
+        { name:'Martensite',     frac: mFrac, seg:'seg-martensite', color:'#5a5a78' },
+        { name:'γ (austenite)',  frac: gFrac, seg:'seg-gamma',      color: PHASE_HEX['γ'] },
+      ] : [
+        { name:'Martensite', frac: 1, seg:'seg-martensite', color:'#5a5a78' },
+      ],
+      hv: HV_MARTENSITE * mFrac + HV_GAMMA * gFrac,
+      activePhases: ['Martensite', 'γ'],
+      reactionEqn: '<b>γ</b> → <b>α′</b> (BCT martensite)<br><span style="font-style:italic">diffusionless · athermal shear</span>',
+      grainStates: { mode: mFrac >= 0.995 ? 'allMartensite' : 'partialMartensite',
+                     frac: mFrac, T },
+    };
+  }
+
+  // Diffusional reaction window — pearlite (525–A₁) or bainite (M_S–525).
+  const fit = avramiAtT(T);
+  const { tBegin, tFinish, k, n } = fit;
+  const frac = avramiFraction(k, n, holdElapsed_s);
+  const prod = diffusionalProduct(T);
+  const isPear = prod.kind === 'pearlite';
+  const eqn = isPear
+    ? '<b>γ</b> (0.76 %C) → <b>α</b> (0.022 %C) + <b>Fe₃C</b> (6.7 %C)<br><span style="font-style:italic">eutectoid · diffusional · lamellar pearlite</span>'
+    : '<b>γ</b> → <b>α</b> + <b>Fe₃C</b><br><span style="font-style:italic">diffusional · acicular bainite (' + (bainiteIsUpper(T) ? 'upper' : 'lower') + ')</span>';
 
   if (frac < 0.005) {
     return {
       stageTitle: 'Austenite (unstable) — incubation',
-      stageDesc: `Between the eutectoid line and the begin curve. γ is now thermodynamically unstable, but nucleation of pearlite has not started yet at this hold time. Time-to-begin at ${T.toFixed(0)} °C is ≈ ${formatTime(tBegin)}.`,
+      stageDesc: `Held at ${T.toFixed(0)} °C for ${formatTime(holdElapsed_s)}. γ is unstable but ${prod.name.toLowerCase()} has not nucleated yet — incubation runs until t ≈ ${formatTime(tBegin)} (red curve).`,
       phases: [{ name:'γ (austenite)', frac:1, seg:'seg-gamma', color: PHASE_HEX['γ'] }],
-      hv: HV['γ'],
-      activePhases: ['γ'],
-      reactionEqn: eqn,
-      grainStates: { mode: 'allGamma' },
-      tBegin, tHalf, tFinish,
+      hv: HV_GAMMA, activePhases: ['γ'], reactionEqn: eqn,
+      grainStates: { mode:'allGamma', T },
+      tBegin, tFinish, k, n,
     };
   }
   if (frac >= 0.995) {
     return {
-      stageTitle: `Complete — ${productName}`,
-      stageDesc: `All γ has decomposed into ${productName.toLowerCase()}: alternating lamellae of α-ferrite and Fe₃C. Spacing is ${T>=620?'wide because nucleation at this T is sparse':'fine because nucleation just above the nose is plentiful'}.`,
-      phases: [{ name: productName, frac:1, seg: segKey, color: PHASE_HEX[product] }],
-      hv: HV[product],
-      activePhases: [productName],
-      reactionEqn: eqn,
-      grainStates: { mode:'allPearlite', product, productName },
-      tBegin, tHalf, tFinish,
+      stageTitle: `Complete — ${prod.name}`,
+      stageDesc: isPear
+        ? `All γ has decomposed into ${prod.name.toLowerCase()}: alternating lamellae of α-ferrite and Fe₃C. Spacing is ${T>=620?'wide because nucleation at this T is sparse':'fine because nucleation just above the nose is plentiful'}.`
+        : `All γ has decomposed into ${prod.name.toLowerCase()}: acicular sheaves of α-ferrite with ${bainiteIsUpper(T) ? 'inter-lath carbide films (formed at higher T → coarser sheaves)' : 'intra-plate carbide arrays (formed at lower T → finer plates, harder)'}.`,
+      phases: [{ name: prod.name, frac:1, seg: prod.seg, color: '#7a5e2a' }],
+      hv: prod.hv, activePhases: [prod.name], reactionEqn: eqn,
+      grainStates: { mode: prod.kind === 'pearlite' ? 'allPearlite' : 'allBainite',
+                     product: prod.morph, productName: prod.name, T,
+                     upperBainite: prod.kind === 'bainite' ? bainiteIsUpper(T) : undefined },
+      tBegin, tFinish, k, n,
     };
   }
+  // Partial transformation.
+  const partialMode = prod.kind === 'pearlite' ? 'partialPearlite' : 'partialBainite';
   return {
-    stageTitle: `Partial — γ + ${productName}`,
-    stageDesc: `${(frac*100).toFixed(0)} % of the austenite has decomposed into ${productName.toLowerCase()}. The remaining γ will keep transforming if you hold longer (move right toward the green completion curve).`,
+    stageTitle: `Partial — γ + ${prod.name}`,
+    stageDesc: isPear
+      ? `${(frac*100).toFixed(0)} % of the austenite has decomposed into ${prod.name.toLowerCase()}. Pearlite nucleates first along the prior-γ grain boundaries and grows inward; more hold time pushes the front toward the grain centre.`
+      : `${(frac*100).toFixed(0)} % of the austenite has decomposed into ${prod.name.toLowerCase()}. Bainite sheaves nucleate at γ-grain boundaries and propagate as acicular fronts.`,
     phases: [
-      { name: productName,     frac: frac,   seg: segKey,    color: PHASE_HEX[product] },
-      { name: 'γ (austenite)', frac: 1-frac, seg: 'seg-gamma', color: PHASE_HEX['γ'] },
+      { name: prod.name,        frac: frac,     seg: prod.seg,  color: '#7a5e2a' },
+      { name: 'γ (austenite)',  frac: 1 - frac, seg: 'seg-gamma', color: PHASE_HEX['γ'] },
     ],
-    hv: HV[product] * frac + HV['γ'] * (1-frac),
-    activePhases: [productName, 'γ'],
+    hv: prod.hv * frac + HV_GAMMA * (1 - frac),
+    activePhases: [prod.name, 'γ'],
     reactionEqn: eqn,
-    grainStates: { mode:'partialPearlite', product, productName, frac },
-    tBegin, tHalf, tFinish,
+    grainStates: { mode: partialMode, product: prod.morph, productName: prod.name,
+                   frac, T,
+                   upperBainite: prod.kind === 'bainite' ? bainiteIsUpper(T) : undefined },
+    tBegin, tFinish, k, n,
   };
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   PATH GEOMETRY — A → B → C   (3-point) OR
+                    A → B → C → D (4-point, with a second quench+hold)
+   s ∈ [0, 1] parameterises the playhead position.
+   ──────────────────────────────────────────────────────────────────── */
+const PATH_HOLD1_FRAC_4PT = 0.40;     // fraction of s for B→C hold (4-pt)
+const PATH_QUENCH_FRAC_4PT = 0.04;    // fraction of s for the C→corner drop
+
+function pathPointAtS(s) {
+  s = Math.max(0, Math.min(1, s));
+  if (s <= PATH_COOL_FRAC) {
+    const f = s / PATH_COOL_FRAC;
+    return {
+      xLog: htPath.logT_A + f * (htPath.logT_B - htPath.logT_A),
+      T:    htPath.T_aust + f * (htPath.T_iso  - htPath.T_aust),
+      leg:  'cooling',
+      f:    f,
+    };
+  }
+  if (pathShape === '3pt') {
+    const f = (s - PATH_COOL_FRAC) / (1 - PATH_COOL_FRAC);
+    return {
+      xLog: htPath.logT_B + f * (htPath.logT_C - htPath.logT_B),
+      T:    htPath.T_iso,
+      leg:  'hold',
+      f:    f,
+    };
+  }
+  // 4-point: hold1 (T_iso), instant quench, hold2 (T_iso2)
+  const S_HOLD1_END  = PATH_COOL_FRAC + PATH_HOLD1_FRAC_4PT;
+  const S_QUENCH_END = S_HOLD1_END   + PATH_QUENCH_FRAC_4PT;
+  if (s <= S_HOLD1_END) {
+    const f = (s - PATH_COOL_FRAC) / (S_HOLD1_END - PATH_COOL_FRAC);
+    return {
+      xLog: htPath.logT_B + f * (htPath.logT_C - htPath.logT_B),
+      T:    htPath.T_iso,
+      leg:  'hold',
+      f:    f,
+    };
+  }
+  if (s <= S_QUENCH_END) {
+    const f = (s - S_HOLD1_END) / (S_QUENCH_END - S_HOLD1_END);
+    return {
+      xLog: htPath.logT_C,                            // vertical drop
+      T:    htPath.T_iso  + f * (htPath.T_iso2 - htPath.T_iso),
+      leg:  'cooling2',
+      f:    f,
+    };
+  }
+  const f = (s - S_QUENCH_END) / (1 - S_QUENCH_END);
+  return {
+    xLog: htPath.logT_C + f * (htPath.logT_D - htPath.logT_C),
+    T:    htPath.T_iso2,
+    leg:  'hold2',
+    f:    f,
+  };
+}
+/* Inverse: given a (xLog, T) in plot space, find the nearest point on
+   the path (whichever leg is closest in pixel space) and return its `s`.
+   Sample-based — robust for the 4-point case where the path has up to
+   four segments of different orientations.                              */
+function nearestSOnPath(xLog, T) {
+  const [qx, qy] = diaToPx(xLog, T);
+  const N = 200;
+  let bestS = 0, bestD2 = Infinity;
+  for (let i = 0; i <= N; i++) {
+    const s = i / N;
+    const pt = pathPointAtS(s);
+    const [px, py] = diaToPx(pt.xLog, pt.T);
+    const d2 = (px - qx) ** 2 + (py - qy) ** 2;
+    if (d2 < bestD2) { bestD2 = d2; bestS = s; }
+  }
+  return bestS;
+}
+function projectOntoSegment(ax, ay, bx, by, px, py) {
+  const dx = bx - ax, dy = by - ay;
+  const L2 = dx*dx + dy*dy;
+  if (L2 < 1e-9) return 0;
+  const t = ((px - ax) * dx + (py - ay) * dy) / L2;
+  return Math.max(0, Math.min(1, t));
+}
+
+/* Effective Avrami hold time at playhead position s — only on the first
+   isothermal leg (B→C). Returns 0 elsewhere.                            */
+function holdElapsedAtS(s) {
+  if (s <= PATH_COOL_FRAC) return 0;
+  const pt = pathPointAtS(s);
+  if (pt.leg !== 'hold') return 0;
+  return Math.max(0, Math.pow(10, pt.xLog) - Math.pow(10, htPath.logT_B));
+}
+
+/* ── Cumulative phase fractions along the heat-treatment path ────────
+   Walks the 3-pt (A→B→C) or 4-pt (A→B→C→D, with an instant C-corner
+   quench to T_iso2) path up to playhead position `s` and returns the
+   running phase fractions:
+       { gamma, pearl, bainU, bainL, mart,
+         T_pearl, T_bainU, T_bainL,     // T at which each first nucleated
+         T_now }
+   Each isothermal leg is treated as a fresh isothermal hold on the
+   remaining γ — i.e. the new transformed fraction in this leg is
+       Δf = γ_at_leg_start · (1 − exp(−k(T) · t_leg^n(T))).
+   The quench C→corner is instantaneous; martensite formed there uses
+   the Koistinen–Marburger fraction on whatever γ survives. This is
+   the standard pedagogical treatment for multi-hold isothermal paths. */
+function cumulativePhasesAtS(s) {
+  let gamma = 1, pearl = 0, bainU = 0, bainL = 0, mart = 0;
+  let T_pearl = null, T_bainU = null, T_bainL = null;
+  const t_B = Math.pow(10, htPath.logT_B);
+  const t_C = Math.pow(10, htPath.logT_C);
+  const t_D = Math.pow(10, htPath.logT_D);
+  const pt = pathPointAtS(s);
+
+  // Cooling leg — nothing has held long enough to transform.
+  if (s <= PATH_COOL_FRAC) {
+    return { gamma, pearl, bainU, bainL, mart,
+             T_pearl, T_bainU, T_bainL, T_now: pt.T };
+  }
+
+  // Helper — apply Avrami at constant T for duration `dt` on the remaining γ.
+  const applyIsothermal = (T, dt) => {
+    if (dt <= 0 || gamma <= 1e-6) return;
+    if (T >= A1) return;
+    if (T <= M_START_T) {
+      // Diffusionless: KM consumes a fraction (T-dependent) of γ.
+      const km = martensiteFractionAtT(T);
+      const transformed = gamma * km;
+      mart  += transformed;
+      gamma -= transformed;
+      return;
+    }
+    const fit = avramiAtT(T);
+    if (!fit) return;
+    const f = avramiFraction(fit.k, fit.n, dt);
+    const transformed = gamma * f;
+    if (transformed < 1e-6) return;
+    gamma -= transformed;
+    if (T >= PEARL_BAINITE_T) {
+      pearl += transformed;
+      if (T_pearl === null) T_pearl = T;
+    } else if (T >= BAINITE_UL_T) {
+      bainU += transformed;
+      if (T_bainU === null) T_bainU = T;
+    } else {
+      bainL += transformed;
+      if (T_bainL === null) T_bainL = T;
+    }
+  };
+
+  // ── First hold (B → C at T_iso) ──────────────────────────────────
+  const S_HOLD1_END = (pathShape === '4pt')
+    ? PATH_COOL_FRAC + PATH_HOLD1_FRAC_4PT
+    : 1;
+  if (s <= S_HOLD1_END) {
+    const dt = Math.max(0, Math.pow(10, pt.xLog) - t_B);
+    applyIsothermal(htPath.T_iso, dt);
+    return { gamma, pearl, bainU, bainL, mart,
+             T_pearl, T_bainU, T_bainL, T_now: pt.T };
+  }
+  applyIsothermal(htPath.T_iso, t_C - t_B);   // full B→C hold
+
+  // ── Instant quench C → corner at T_iso2 (4-pt only) ─────────────
+  const S_QUENCH_END = S_HOLD1_END + PATH_QUENCH_FRAC_4PT;
+  if (s <= S_QUENCH_END) {
+    // T is being interpolated from T_iso down to T_iso2 — apply KM at
+    // current T if we're already below M_S so the slider feels live.
+    applyIsothermal(pt.T, 0);     // no Avrami time
+    if (pt.T <= M_START_T) {
+      const km = martensiteFractionAtT(pt.T);
+      const transformed = gamma * km;
+      mart  += transformed;
+      gamma -= transformed;
+    }
+    return { gamma, pearl, bainU, bainL, mart,
+             T_pearl, T_bainU, T_bainL, T_now: pt.T };
+  }
+  if (htPath.T_iso2 <= M_START_T) {
+    const km = martensiteFractionAtT(htPath.T_iso2);
+    const transformed = gamma * km;
+    mart  += transformed;
+    gamma -= transformed;
+  }
+
+  // ── Second hold (corner → D at T_iso2) ───────────────────────────
+  const t_now = Math.pow(10, pt.xLog);
+  const dt2   = Math.max(0, t_now - t_C);
+  applyIsothermal(htPath.T_iso2, dt2);
+  return { gamma, pearl, bainU, bainL, mart,
+           T_pearl, T_bainU, T_bainL, T_now: pt.T };
+}
+
+/* Constraint guards for B and D drags.
+   B must stay strictly below A₁ (so the cooling leg has somewhere to land)
+   and strictly above the nose (so the Avrami fit is defined). It must also
+   sit to the right of A.  D must stay to the right of B. */
+function clampPath() {
+  // T_iso bounds
+  if (htPath.T_iso > A1 - 5)              htPath.T_iso = A1 - 5;
+  // Allow T_iso to land anywhere from just above M_start through to just
+  // below A₁ — covers pearlite (525–727), bainite (250–525), and the
+  // martensite shelf at M_start exactly.
+  if (htPath.T_iso < M_START_T - 30)      htPath.T_iso = M_START_T - 30;
+  // logT_B bounds — must stay inside the plot
+  if (htPath.logT_B < X_MIN + 0.15)       htPath.logT_B = X_MIN + 0.15;
+  if (htPath.logT_B > X_MAX - 0.6)        htPath.logT_B = X_MAX - 0.6;
+  // logT_A trails logT_B by a fixed offset (purely visual)
+  htPath.logT_A = htPath.logT_B - 0.45;
+  if (htPath.logT_A < X_MIN)              htPath.logT_A = X_MIN;
+  // T_aust pinned just under the top so the path is visible
+  htPath.T_aust = Math.min(Y_MAX - 10, T_AUST_DEFAULT);
+  // logT_C must sit to the right of B
+  if (htPath.logT_C < htPath.logT_B + 0.2) htPath.logT_C = htPath.logT_B + 0.2;
+  if (htPath.logT_C > X_MAX)               htPath.logT_C = X_MAX;
+  // 4-point extras: T_iso2 must be strictly cooler than T_iso (it's the
+  // second quench landing). logT_D must sit to the right of C.
+  if (htPath.T_iso2 > htPath.T_iso - 20)   htPath.T_iso2 = htPath.T_iso - 20;
+  if (htPath.T_iso2 < Y_MIN + 10)          htPath.T_iso2 = Y_MIN + 10;
+  if (htPath.logT_D < htPath.logT_C + 0.2) htPath.logT_D = htPath.logT_C + 0.2;
+  if (htPath.logT_D > X_MAX)               htPath.logT_D = X_MAX;
+}
+function clampPlayhead() {
+  if (playhead.s < 0) playhead.s = 0;
+  if (playhead.s > 1) playhead.s = 1;
+}
+
 
 /* ════════════════════════════════════════════════════════════════════
    DIAGRAM DRAW
@@ -992,118 +1521,315 @@ function redraw() {
   diaCtx.rect(r.x0 + 0.5, r.y0 + 0.5, r.x1-r.x0 - 1, r.y1-r.y0 - 1);
   diaCtx.clip();
 
-  // Background bands — austenite (above A₁), pearlite reaction split into
-  // coarse (T ≥ 620 °C) and fine (T < 620 °C) sub-fields.
-  const COARSE_FINE_T = 620;
-  fillRegion(X_MIN, X_MAX, A1, Y_MAX,                '#E8F4E8');  // stable γ
-  fillRegion(X_MIN, X_MAX, COARSE_FINE_T, A1,        '#FFF7E0');  // coarse pearlite zone
-  fillRegion(X_MIN, X_MAX, PEARL_NOSE_T, COARSE_FINE_T, '#FFE9B8'); // fine pearlite zone
-  fillRegion(X_MIN, X_MAX, Y_MIN, PEARL_NOSE_T,      '#F3F3F8');  // outside scope
+  // Background bands matching the reference TTT figure:
+  //   γ (stable, above A₁) · Pearlite (525–727 °C) · Bainite (250–525 °C,
+  //   split into upper / lower at 350 °C) · Martensite (below M_start).
+  fillRegion(X_MIN, X_MAX, A1, Y_MAX,                  '#E8F4E8');  // stable γ
+  fillRegion(X_MIN, X_MAX, PEARL_BAINITE_T, A1,        '#FFF1CC');  // pearlite
+  fillRegion(X_MIN, X_MAX, BAINITE_UL_T, PEARL_BAINITE_T, '#E8E0F2'); // upper bainite
+  fillRegion(X_MIN, X_MAX, M_START_T, BAINITE_UL_T,    '#D9D0E8');  // lower bainite
+  fillRegion(X_MIN, X_MAX, Y_MIN, M_START_T,           '#E4E4ED');  // martensite
 
-  // Three completion curves
-  // Begin / completion curves only — no shading between them.
-  drawCurve(TTT_BEGIN,  '#c43c3c', 2.2);    // begin (~0 %) — red
-  drawCurve(TTT_FINISH, '#3d8a4f', 2.2);    // completion (~100 %) — green
+  drawCurve(TTT_BEGIN,  '#c43c3c', 2.2);          // begin  (~ 0 %)  — red
+  drawCurve(TTT_FINISH, '#3d8a4f', 2.2);          // finish (~100 %) — green
 
   // Eutectoid horizontal line — labelled "Eutectoid temperature" per the textbook
   drawIsothermal(A1, '#444', [6, 4]);
-  // Coarse / fine pearlite separator at 620 °C — thin gray dashed
-  drawIsothermal(COARSE_FINE_T, '#bbb', [3, 4]);
+  // Pearlite / bainite divider and bainite upper/lower divider
+  drawIsothermal(PEARL_BAINITE_T, '#aaa', [3, 4]);
+  drawIsothermal(BAINITE_UL_T,    '#bbb', [2, 5]);
+  // Martensite isotherms — M_start / M(50 %) / M(90 %)
+  drawIsothermal(M_START_T,  '#b48f3c', [6, 3]);
+  drawIsothermal(M_50_T,     '#b48f3c', [3, 4]);
+  drawIsothermal(M_FINISH_T, '#b48f3c', [3, 4]);
 
   // Region labels — no background fill, anchored to either edge.
-  // (A1 = 727, COARSE_FINE_T = 620, PEARL_NOSE_T = 525)
-
-  // Stable austenite — left, just above the eutectoid line.
   drawRegionLabel('Austenite (stable)',   X_MIN, 737, '#3d6b3d', 15, '700', 'left');
-  // Eutectoid temperature label — pinned to the right edge, just above the
-  // dashed line. Drawn inline (right-aligned) so the right edge of the text
-  // sits flush against the plot's right border.
-  {
-    const [pxR, pyR] = diaToPx(X_MAX, 733);
-    diaCtx.font = '600 ' + fpx(12) + 'px "IBM Plex Sans Thai Looped", sans-serif';
-    diaCtx.fillStyle = '#333';
-    diaCtx.textAlign = 'right';
-    diaCtx.textBaseline = 'middle';
-    diaCtx.fillText('Eutectoid temperature  727 °C', pxR - 4, pyR);
-  }
-  // Unstable austenite — left, just below the eutectoid line.
-  drawRegionLabel('Austenite (unstable)', X_MIN, 717, '#7a5e2a', 14, '600', 'left');
-  // Coarse pearlite — right, just above the dashed coarse / fine boundary.
-  drawRegionLabel('Coarse Pearlite',      X_MAX, 629, '#7a5e2a', 14, '700', 'right');
-  // Fine pearlite — right, just below the dashed coarse / fine boundary.
-  drawRegionLabel('Fine Pearlite',        X_MAX, 611, '#7a5e2a', 14, '700', 'right');
+  drawRegionLabel('Eutectoid temperature  727 °C', X_MAX, 737, '#333', 14, '700', 'right');
+  drawRegionLabel('Pearlite, P',          X_MAX, 640, '#7a5e2a', 15, '700', 'right');
+  drawRegionLabel('Upper Bainite',        X_MAX, 470, '#5a4a8a', 14, '700', 'right');
+  drawRegionLabel('Lower Bainite',        X_MAX, 320, '#5a4a8a', 14, '700', 'right');
+  drawRegionLabel('Bainite, B',           X_MAX, 290, '#5a4a8a', 13, '600', 'right');
+  drawRegionLabel('M (start)',            X_MIN, M_START_T  + 10, '#a86b1e', 14, '700', 'left');
+  drawRegionLabel('M (50 %)',             X_MIN, M_50_T     + 10, '#a86b1e', 14, '700', 'left');
+  drawRegionLabel('M (90 %)',             X_MIN, M_FINISH_T + 10, '#a86b1e', 14, '700', 'left');
+  drawRegionLabel('Martensite, M',        X_MAX, M_FINISH_T - 28, '#5a5a78', 14, '700', 'right');
 
-  // Horizontal hold guide — show t_begin and t_finish at the current T.
-  {
-    const T = tttDot.y;
-    diaCtx.strokeStyle = 'rgba(50,50,50,0.5)';
-    diaCtx.lineWidth   = 1.2;
-    diaCtx.setLineDash([4,3]);
-    const [, py] = diaToPx(X_MIN, T);
-    diaCtx.beginPath();
-    diaCtx.moveTo(r.x0, py); diaCtx.lineTo(r.x1, py);
-    diaCtx.stroke();
-    diaCtx.setLineDash([]);
-    if (T < A1 && T > PEARL_NOSE_T) {
-      const xB = interp(TTT_BEGIN,  T);
-      const xF = interp(TTT_FINISH, T);
-      diaCtx.fillStyle = '#c43c3c';
-      diaCtx.beginPath(); diaCtx.arc(diaToPx(xB, T)[0], py, 4, 0, 2*Math.PI); diaCtx.fill();
-      diaCtx.fillStyle = '#3d8a4f';
-      diaCtx.beginPath(); diaCtx.arc(diaToPx(xF, T)[0], py, 4, 0, 2*Math.PI); diaCtx.fill();
-    }
+  // Branch on viewMode: free dot OR heat-treatment path.
+  let ptForLabel;
+  if (viewMode === 'path') {
+    drawHTPath();
+    const pt = pathPointAtS(playhead.s);
+    drawPlayhead(pt);
+    ptForLabel = pt;
+  } else {
+    drawDot(tttDot.x, tttDot.y, true);
+    ptForLabel = { xLog: tttDot.x, T: tttDot.y };
   }
 
-  // The draggable dot
-  drawDot(tttDot.x, tttDot.y, true);
-
+  // Cursor-following readout: keep the time/temperature label inside the
+  // clipped plot region so it stays on top of the dotted guides.
+  const tSec = Math.pow(10, ptForLabel.xLog);
+  drawDotLabel(`${formatTime(tSec)}  ·  ${ptForLabel.T.toFixed(0)} °C`,
+               ptForLabel.xLog, ptForLabel.T);
   diaCtx.restore();
+}
 
-  // Bottom-left curve legend (replaces the in-plot curve labels)
-  drawCurveLegend();
+/* The heat-treatment path + endpoint markers.
+   3-pt: A → B → C    (cool then hold at T_iso)
+   4-pt: A → B → C → (C-corner at T_iso2) → D
+                     (cool, hold T1, instant quench, hold T2)            */
+function drawHTPath() {
+  const [axPx, ayPx] = diaToPx(htPath.logT_A, htPath.T_aust);
+  const [bxPx, byPx] = diaToPx(htPath.logT_B, htPath.T_iso);
+  const [cxPx, cyPx] = diaToPx(htPath.logT_C, htPath.T_iso);
 
-  // Bottom-right time / temperature readout for the draggable dot.
-  const tSec = Math.pow(10, tttDot.x);
-  drawDotLabel(`${formatTime(tSec)}  ·  ${tttDot.y.toFixed(0)} °C`);
+  diaCtx.lineCap = 'round';
+  diaCtx.lineJoin = 'round';
+  diaCtx.strokeStyle = '#1a1a1a';
+  diaCtx.lineWidth = 1.8;
+  diaCtx.beginPath();
+  diaCtx.moveTo(axPx, ayPx);
+  diaCtx.lineTo(bxPx, byPx);
+  diaCtx.lineTo(cxPx, cyPx);
+
+  if (pathShape === '4pt') {
+    const [cqPx, cqPy] = diaToPx(htPath.logT_C, htPath.T_iso2);
+    const [dxPx, dyPx] = diaToPx(htPath.logT_D, htPath.T_iso2);
+    diaCtx.lineTo(cqPx, cqPy);   // vertical instant quench
+    diaCtx.lineTo(dxPx, dyPx);   // horizontal hold at T_iso2
+    diaCtx.stroke();
+    diaCtx.lineCap = 'butt';
+    drawEndpointDot(axPx, ayPx, '#1a1a1a', '#fff', false);
+    drawEndpointDot(bxPx, byPx, '#1a1a1a', '#1a1a1a', dragTarget === 'B');
+    drawEndpointDot(cxPx, cyPx, '#1a1a1a', '#1a1a1a', dragTarget === 'C');
+    drawEndpointDot(dxPx, dyPx, '#1a1a1a', '#1a1a1a', dragTarget === 'D');
+    diaCtx.font = '700 ' + fpx(12) + 'px "IBM Plex Sans Thai Looped", sans-serif';
+    diaCtx.fillStyle = '#1a1a1a';
+    diaCtx.textBaseline = 'bottom';
+    diaCtx.textAlign = 'left';   diaCtx.fillText('A', axPx + 6, ayPx - 2);
+    diaCtx.textAlign = 'right';  diaCtx.fillText('B', bxPx - 6, byPx - 3);
+    diaCtx.textAlign = 'right';  diaCtx.fillText('C', cxPx - 6, cyPx - 3);
+    diaCtx.textAlign = 'left';   diaCtx.fillText('D', dxPx + 6, dyPx - 3);
+    return;
+  }
+
+  diaCtx.stroke();
+  diaCtx.lineCap = 'butt';
+  drawEndpointDot(axPx, ayPx, '#1a1a1a', '#fff', false);
+  drawEndpointDot(bxPx, byPx, '#1a1a1a', '#1a1a1a', dragTarget === 'B');
+  drawEndpointDot(cxPx, cyPx, '#1a1a1a', '#1a1a1a', dragTarget === 'C');
+  diaCtx.font = '700 ' + fpx(12) + 'px "IBM Plex Sans Thai Looped", sans-serif';
+  diaCtx.fillStyle = '#1a1a1a';
+  diaCtx.textBaseline = 'bottom';
+  diaCtx.textAlign = 'left';   diaCtx.fillText('A', axPx + 6, ayPx - 2);
+  diaCtx.textAlign = 'right';  diaCtx.fillText('B', bxPx - 6, byPx - 3);
+  diaCtx.textAlign = 'left';   diaCtx.fillText('C', cxPx + 6, cyPx - 3);
+}
+
+function drawEndpointDot(px, py, ringColor, fillColor, active) {
+  const R = ENDPOINT_R + (active ? 1.2 : 0);
+  diaCtx.beginPath();
+  diaCtx.arc(px, py, R, 0, 2*Math.PI);
+  diaCtx.fillStyle = fillColor;
+  diaCtx.fill();
+  diaCtx.strokeStyle = ringColor;
+  diaCtx.lineWidth = active ? 1.6 : 1.2;
+  diaCtx.stroke();
+}
+/* (legacy handle drawers kept for back-compat in case anything calls them) */
+function drawHandle(px, py, ringColor, fillColor, R, active) {
+  diaCtx.beginPath();
+  diaCtx.arc(px, py, R + (active ? 2 : 0), 0, 2*Math.PI);
+  diaCtx.fillStyle = fillColor;
+  diaCtx.fill();
+  diaCtx.strokeStyle = ringColor;
+  diaCtx.lineWidth = active ? 3 : 2.2;
+  diaCtx.stroke();
+}
+function drawSquareHandle(px, py, ringColor, fillColor, R, active) {
+  const s = R + (active ? 2 : 0);
+  diaCtx.beginPath();
+  diaCtx.rect(px - s, py - s, 2*s, 2*s);
+  diaCtx.fillStyle = fillColor;
+  diaCtx.fill();
+  diaCtx.strokeStyle = ringColor;
+  diaCtx.lineWidth = active ? 3 : 2.2;
+  diaCtx.stroke();
+}
+
+function drawPlayhead(pt) {
+  const [px, py] = diaToPx(pt.xLog, pt.T);
+  const r = plotRect();
+  // Crosshair guides
+  diaCtx.strokeStyle = 'rgba(0,0,0,0.22)';
+  diaCtx.lineWidth = 1;
+  diaCtx.setLineDash([2, 3]);
+  diaCtx.beginPath();
+  diaCtx.moveTo(px, r.y0); diaCtx.lineTo(px, r.y1);
+  diaCtx.moveTo(r.x0, py); diaCtx.lineTo(r.x1, py);
+  diaCtx.stroke();
+  diaCtx.setLineDash([]);
+
+  // Playhead dot (ringed so it stands apart from the small endpoint dots)
+  diaCtx.beginPath();
+  diaCtx.arc(px, py, PLAYHEAD_R, 0, 2*Math.PI);
+  diaCtx.fillStyle = '#fff';
+  diaCtx.fill();
+  diaCtx.strokeStyle = '#1a1a1a';
+  diaCtx.lineWidth = 2.2;
+  diaCtx.stroke();
+  diaCtx.beginPath();
+  diaCtx.arc(px, py, PLAYHEAD_R - 3, 0, 2*Math.PI);
+  diaCtx.fillStyle = '#1a1a1a';
+  diaCtx.fill();
 }
 
 /* ════════════════════════════════════════════════════════════════════
-   POINTER INTERACTION
+   POINTER INTERACTION — drag B, drag D, scrub playhead
    ──────────────────────────────────────────────────────────────────── */
+function pointerCanvasCoords(e) {
+  const rect = diaCanvas.getBoundingClientRect();
+  return [e.clientX - rect.left, e.clientY - rect.top];
+}
+function pointerWorldCoords(e) {
+  const [px, py] = pointerCanvasCoords(e);
+  return pxToWorld(px, py);
+}
 function clampDot(d) {
   if (d.x < X_MIN) d.x = X_MIN;
   if (d.x > X_MAX) d.x = X_MAX;
   if (d.y < Y_MIN) d.y = Y_MIN;
   if (d.y > Y_MAX) d.y = Y_MAX;
 }
-function handlePointer(e) {
-  const rect = diaCanvas.getBoundingClientRect();
-  const px = e.clientX - rect.left;
-  const py = e.clientY - rect.top;
+function pickHandle(px, py) {
+  // B (corner)
+  const [bx, by] = diaToPx(htPath.logT_B, htPath.T_iso);
+  if ((px - bx)**2 + (py - by)**2 <= HANDLE_HIT_R * HANDLE_HIT_R) return 'B';
+  // C (end of hold)
+  const [cx, cy] = diaToPx(htPath.logT_C, htPath.T_iso);
+  if ((px - cx)**2 + (py - cy)**2 <= HANDLE_HIT_R * HANDLE_HIT_R) return 'C';
+  // D (4-point only — end of second hold)
+  if (pathShape === '4pt') {
+    const [dx, dy] = diaToPx(htPath.logT_D, htPath.T_iso2);
+    if ((px - dx)**2 + (py - dy)**2 <= HANDLE_HIT_R * HANDLE_HIT_R) return 'D';
+  }
+  // Playhead
+  const pt = pathPointAtS(playhead.s);
+  const [phx, phy] = diaToPx(pt.xLog, pt.T);
+  if ((px - phx)**2 + (py - phy)**2 <= (HANDLE_HIT_R + 2)**2) return 'play';
+  return null;
+}
+function applyDrag(e) {
+  const [px, py] = pointerCanvasCoords(e);
   const [xLog, T] = pxToWorld(px, py);
-  tttDot.x = xLog;
-  tttDot.y = T;
-  clampDot(tttDot);
+  if (viewMode === 'free' && dragTarget === 'free') {
+    tttDot.x = xLog;
+    tttDot.y = T;
+    clampDot(tttDot);
+  } else if (dragTarget === 'B') {
+    htPath.logT_B = xLog;
+    htPath.T_iso  = T;
+    clampPath();
+    clampPlayhead();
+  } else if (dragTarget === 'C') {
+    htPath.logT_C = xLog;
+    clampPath();
+    clampPlayhead();
+  } else if (dragTarget === 'D') {
+    htPath.logT_D = xLog;
+    htPath.T_iso2 = T;
+    clampPath();
+    clampPlayhead();
+  } else if (dragTarget === 'play') {
+    playhead.s = nearestSOnPath(xLog, T);
+    clampPlayhead();
+  }
   renderAll();
 }
 diaCanvas.addEventListener('pointerdown', (e) => {
-  dragging = true;
+  const [px, py] = pointerCanvasCoords(e);
+
+  if (viewMode === 'free') {
+    // One handle, one behaviour: pick up the dot and drop it wherever.
+    dragTarget = 'free';
+    const [xLog, T] = pxToWorld(px, py);
+    tttDot.x = xLog; tttDot.y = T;
+    clampDot(tttDot);
+    renderAll();
+  } else {
+    // Path mode: try B / C / playhead, otherwise scrub the playhead to the
+    // nearest point on the path.
+    let hit = pickHandle(px, py);
+    if (!hit) {
+      hit = 'play';
+      const [xLog, T] = pxToWorld(px, py);
+      playhead.s = nearestSOnPath(xLog, T);
+      clampPlayhead();
+      renderAll();
+    }
+    dragTarget = hit;
+  }
   diaCanvas.classList.add('dragging');
   diaCanvas.setPointerCapture(e.pointerId);
-  handlePointer(e);
 });
 diaCanvas.addEventListener('pointermove', (e) => {
-  if (!dragging) return;
-  handlePointer(e);
+  if (!dragTarget) {
+    if (viewMode === 'path') {
+      const [px, py] = pointerCanvasCoords(e);
+      diaCanvas.style.cursor = pickHandle(px, py) ? 'grab' : 'crosshair';
+    } else {
+      diaCanvas.style.cursor = 'grab';
+    }
+    return;
+  }
+  applyDrag(e);
 });
 diaCanvas.addEventListener('pointerup', (e) => {
-  dragging = false;
+  dragTarget = null;
   diaCanvas.classList.remove('dragging');
-  diaCanvas.releasePointerCapture(e.pointerId);
+  if (diaCanvas.hasPointerCapture && diaCanvas.hasPointerCapture(e.pointerId)) {
+    diaCanvas.releasePointerCapture(e.pointerId);
+  }
 });
 diaCanvas.addEventListener('pointercancel', () => {
-  dragging = false;
+  dragTarget = null;
   diaCanvas.classList.remove('dragging');
+});
+
+/* ─── View-mode toggle ─────────────────────────────────────────────── */
+document.getElementById('view-toggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-mode]');
+  if (!btn) return;
+  const mode = btn.dataset.mode;
+  if (mode === viewMode) return;
+  viewMode = mode;
+  for (const b of document.querySelectorAll('#view-toggle button')) {
+    b.classList.toggle('active', b.dataset.mode === viewMode);
+  }
+  // The 3-pt / 4-pt sub-toggle is only meaningful in heat-treatment-path mode.
+  const shapeToggle = document.getElementById('path-shape-toggle');
+  if (shapeToggle) shapeToggle.hidden = (viewMode !== 'path');
+  dragTarget = null;
+  renderAll();
+});
+
+/* 3-point / 4-point path-shape toggle. Only meaningful inside the
+   Heat-treatment-path view; the sub-toggle is hidden otherwise. */
+document.getElementById('path-shape-toggle').addEventListener('click', (e) => {
+  const btn = e.target.closest('button[data-shape]');
+  if (!btn) return;
+  const shape = btn.dataset.shape;
+  if (shape === pathShape) return;
+  pathShape = shape;
+  for (const b of document.querySelectorAll('#path-shape-toggle button')) {
+    b.classList.toggle('active', b.dataset.shape === pathShape);
+  }
+  dragTarget = null;
+  // Re-clamp so the new constraints (D / T_iso2 in 4-pt) snap into valid
+  // ranges, then re-render.
+  clampPath();
+  renderAll();
 });
 
 /* ════════════════════════════════════════════════════════════════════
@@ -1112,94 +1838,341 @@ diaCanvas.addEventListener('pointercancel', () => {
 const microCanvas = document.getElementById('micro');
 const microCtx = microCanvas.getContext('2d');
 
-const N_GRAINS = 22;
-let GRAINS = [];
-let MW = 0, MH = 0;
-let grainMap = null;
-let boundaryMap = null;
+/* ─── 2-D Monte Carlo Potts grain-growth simulation ─────────────────
+   Standard vertex/Potts discretisation: a fixed lattice where each cell
+   carries a grain ID and at every Monte Carlo sweep we try to flip each
+   cell's ID to a neighbour's ID, accepting only when the move reduces
+   (or preserves) the unlike-neighbour count. Small grains shrink and
+   disappear; large grains coalesce — exactly the curvature-driven
+   evolution a vertex model captures.
+
+   We pre-bake a series of snapshots from t_sim = 0 (many small grains)
+   to t_sim ≈ final (a few large grains) and then map the playhead
+   temperature to a snapshot index — high T (austenitising) → late snap
+   with few large grains, low T → early snap with many small grains.    */
+const SIM_SIZE        = 256;     // simulation grid resolution (px)
+const SIM_INITIAL_N   = 180;     // starting grain count (many small)
+const SIM_FINAL_N     = 8;       // ending grain count after coalescence
+const SIM_N_SNAPSHOTS = 24;      // snapshots saved from initial → final
+let MW = 0, MH = 0;              // canvas size — render target
+
+/* Each snapshot: { grainMap, boundaryMap, pixelRank, centroids }
+   grainMap: Uint8Array(SIM_SIZE²) of grain IDs (1..SIM_INITIAL_N, 0=outside)
+   boundaryMap: Uint8Array — 1 where pixel is on a grain boundary
+   pixelRank: Float32Array — per-grain rank by distance from boundary
+   centroids: Float32Array((SIM_INITIAL_N+1)*2) — mean (cx, cy) per grain */
+let SIM_SNAPSHOTS = [];
+/* Per-grain lamellar orientations — fixed once at init, indexed by grain ID.
+   Surviving grains keep their original orientation after MC merges.        */
+let GRAIN_ORIENTATIONS = [];
 
 function rngSeed(seed) {
   let s = seed;
   return () => { s = (s * 9301 + 49297) % 233280; return s / 233280; };
 }
-function buildGrains() {
-  const rng = rngSeed(11);
-  GRAINS = [];
-  const cx = MW/2, cy = MH/2, R = Math.min(MW, MH)/2 - 4;
-  const minDist = R * 0.34;
+
+/* Initial state: Voronoi tessellation from SIM_INITIAL_N Poisson-disc seeds. */
+function initSimGrid(W, H, nSeeds, seed) {
+  const rng = rngSeed(seed);
+  const cx = W/2, cy = H/2, R = Math.min(W, H)/2 - 2;
+  const R2 = R * R;
+  const minDist = R * 0.82 / Math.sqrt(nSeeds);
+
+  const seeds = [];
   let tries = 0;
-  while (GRAINS.length < N_GRAINS && tries < 8000) {
+  while (seeds.length < nSeeds && tries < 20000) {
     tries++;
-    const r = Math.sqrt(rng()) * (R - 6);
+    const r = Math.sqrt(rng()) * (R - 2);
     const a = rng() * 2 * Math.PI;
     const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
     let ok = true;
-    for (const g of GRAINS) {
-      const dx = g.cx - x, dy = g.cy - y;
+    for (const s of seeds) {
+      const dx = s.x - x, dy = s.y - y;
       if (dx*dx + dy*dy < minDist*minDist) { ok = false; break; }
     }
-    if (ok) {
-      const lamAng = rng() * Math.PI;
-      const spacing = MW / 38 + rng() * (MW / 90);
-      GRAINS.push({
-        cx: x, cy: y,
-        rank: GRAINS.length / N_GRAINS,
-        angle: lamAng,
-        cosA: Math.cos(lamAng), sinA: Math.sin(lamAng),
-        stripeSpacing: spacing,
-        // For martensite: a second cross-orientation
-        angle2: lamAng + Math.PI/2 * (0.6 + rng()*0.6),
-      });
-    }
+    if (ok) seeds.push({ x, y });
   }
-  // Shuffle ranks (so "first to transform" isn't spatially biased)
-  const idx = GRAINS.map((_, i) => i);
-  for (let i = idx.length-1; i > 0; i--) {
-    const j = Math.floor(rng() * (i+1));
-    [idx[i], idx[j]] = [idx[j], idx[i]];
-  }
-  idx.forEach((origIdx, newRank) => {
-    GRAINS[origIdx].rank = (newRank + 0.5) / GRAINS.length;
-  });
-  // Pre-compute cos/sin for second orientation
-  for (const g of GRAINS) {
-    g.cos2 = Math.cos(g.angle2);
-    g.sin2 = Math.sin(g.angle2);
-  }
-}
-function buildGrainMap() {
-  if (MW <= 0 || MH <= 0) return;
-  grainMap = new Uint8Array(MW * MH);
-  boundaryMap = new Uint8Array(MW * MH);
-  const cx = MW/2, cy = MH/2, R = Math.min(MW, MH)/2 - 3;
-  const R2 = R * R;
-  for (let y = 0; y < MH; y++) {
-    for (let x = 0; x < MW; x++) {
+
+  const grid = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
       const dx = x - cx, dy = y - cy;
-      if (dx*dx + dy*dy > R2) { grainMap[y*MW+x] = 0; continue; }
+      if (dx*dx + dy*dy > R2) { grid[y*W+x] = 0; continue; }
       let best = 0, bestD = Infinity;
-      for (let i = 0; i < GRAINS.length; i++) {
-        const ddx = x - GRAINS[i].cx, ddy = y - GRAINS[i].cy;
+      for (let i = 0; i < seeds.length; i++) {
+        const ddx = x - seeds[i].x, ddy = y - seeds[i].y;
         const d = ddx*ddx + ddy*ddy;
         if (d < bestD) { bestD = d; best = i + 1; }
       }
-      grainMap[y*MW+x] = best;
+      grid[y*W+x] = best;
     }
   }
-  for (let y = 1; y < MH-1; y++) {
-    for (let x = 1; x < MW-1; x++) {
-      const i = y*MW + x;
-      const g = grainMap[i];
-      if (g === 0) continue;
-      const n1 = grainMap[i-1],  n2 = grainMap[i+1];
-      const n3 = grainMap[i-MW], n4 = grainMap[i+MW];
-      if ((n1 !== 0 && n1 !== g) || (n2 !== 0 && n2 !== g) ||
-          (n3 !== 0 && n3 !== g) || (n4 !== 0 && n4 !== g)) {
-        boundaryMap[i] = 1;
-      }
+  return grid;
+}
+
+/* One MC sweep: visit every interior pixel once and try to flip its grain
+   ID to a random unlike neighbour, accepting only if the move does not
+   raise the unlike-neighbour count (zero-temperature Metropolis).         */
+function mcSweep(grid, W, H, rng) {
+  const total = (W - 2) * (H - 2);
+  for (let n = 0; n < total; n++) {
+    const x = 1 + Math.floor(rng() * (W - 2));
+    const y = 1 + Math.floor(rng() * (H - 2));
+    const idx = y * W + x;
+    const myId = grid[idx];
+    if (myId === 0) continue;
+    const nU = grid[idx - W], nD = grid[idx + W];
+    const nL = grid[idx - 1], nR = grid[idx + 1];
+
+    let E_old = 0;
+    if (nU !== 0 && nU !== myId) E_old++;
+    if (nD !== 0 && nD !== myId) E_old++;
+    if (nL !== 0 && nL !== myId) E_old++;
+    if (nR !== 0 && nR !== myId) E_old++;
+    if (E_old === 0) continue;
+
+    // Pick a random unlike, in-disc neighbour
+    let trial = 0, attempts = 0;
+    while (attempts < 6) {
+      const pick = Math.floor(rng() * 4);
+      const cand = (pick === 0) ? nU : (pick === 1) ? nD : (pick === 2) ? nL : nR;
+      if (cand !== 0 && cand !== myId) { trial = cand; break; }
+      attempts++;
     }
+    if (trial === 0) continue;
+
+    let E_new = 0;
+    if (nU !== 0 && nU !== trial) E_new++;
+    if (nD !== 0 && nD !== trial) E_new++;
+    if (nL !== 0 && nL !== trial) E_new++;
+    if (nR !== 0 && nR !== trial) E_new++;
+    if (E_new <= E_old) grid[idx] = trial;
   }
 }
+
+function countGrains(grid) {
+  const seen = new Uint8Array(SIM_INITIAL_N + 1);
+  for (let i = 0; i < grid.length; i++) {
+    const g = grid[i];
+    if (g !== 0) seen[g] = 1;
+  }
+  let count = 0;
+  for (let i = 1; i <= SIM_INITIAL_N; i++) if (seen[i]) count++;
+  return count;
+}
+
+/* Snapshot: deep-copy grid, derive boundary mask, chamfer distance + rank,
+   compute centroids. All sized SIM_SIZE². */
+function takeSnapshot(grid, W, H) {
+  const len = W * H;
+  const gMap = new Uint8Array(grid);
+  const bMap = new Uint8Array(len);
+
+  // One-sided edge marking: only flag a pixel as boundary if its right
+  // or down neighbour belongs to a different grain. This produces a
+  // single-pixel-wide line per interface (instead of two pixels — one
+  // on each side — when all four neighbours are checked), which after
+  // 2× canvas upsampling gives a noticeably thinner grain outline.
+  for (let y = 1; y < H-1; y++) {
+    for (let x = 1; x < W-1; x++) {
+      const i = y*W + x;
+      const g = gMap[i];
+      if (g === 0) continue;
+      const nR = gMap[i+1], nD = gMap[i+W];
+      if ((nR !== 0 && nR !== g) || (nD !== 0 && nD !== g)) bMap[i] = 1;
+    }
+  }
+  // Outer disc edge — pearlite nucleates at the free surface as well.
+  for (let y = 1; y < H-1; y++) {
+    for (let x = 1; x < W-1; x++) {
+      const i = y*W + x;
+      if (gMap[i] === 0) continue;
+      if (gMap[i-1] === 0 || gMap[i+1] === 0 ||
+          gMap[i-W] === 0 || gMap[i+W] === 0) bMap[i] = 1;
+    }
+  }
+
+  // Chamfer (3,4) two-pass distance transform from boundary inward.
+  const dist = new Float32Array(len);
+  for (let i = 0; i < len; i++) {
+    if (gMap[i] === 0 || bMap[i]) dist[i] = 0;
+    else dist[i] = 1e9;
+  }
+  for (let y = 1; y < H; y++) {
+    for (let x = 1; x < W - 1; x++) {
+      const i = y * W + x;
+      if (dist[i] === 0) continue;
+      let m = dist[i];
+      const a = dist[i - W - 1] + 4;
+      const b = dist[i - W]     + 3;
+      const c = dist[i - W + 1] + 4;
+      const e = dist[i - 1]     + 3;
+      if (a < m) m = a;
+      if (b < m) m = b;
+      if (c < m) m = c;
+      if (e < m) m = e;
+      dist[i] = m;
+    }
+  }
+  for (let y = H - 2; y >= 0; y--) {
+    for (let x = W - 2; x >= 1; x--) {
+      const i = y * W + x;
+      if (dist[i] === 0) continue;
+      let m = dist[i];
+      const a = dist[i + W + 1] + 4;
+      const b = dist[i + W]     + 3;
+      const c = dist[i + W - 1] + 4;
+      const e = dist[i + 1]     + 3;
+      if (a < m) m = a;
+      if (b < m) m = b;
+      if (c < m) m = c;
+      if (e < m) m = e;
+      dist[i] = m;
+    }
+  }
+
+  // Per-grain rank: pixels sorted by distance, normalised to [0, 1].
+  const pixelRank = new Float32Array(len);
+  const buckets = new Array(SIM_INITIAL_N + 1);
+  for (let i = 0; i <= SIM_INITIAL_N; i++) buckets[i] = [];
+  for (let i = 0; i < len; i++) {
+    const g = gMap[i];
+    if (g === 0) continue;
+    buckets[g].push(i);
+  }
+  for (let g = 1; g <= SIM_INITIAL_N; g++) {
+    const arr = buckets[g];
+    if (arr.length === 0) continue;
+    arr.sort((p, q) => dist[p] - dist[q]);
+    const L = arr.length;
+    for (let k = 0; k < L; k++) pixelRank[arr[k]] = (k + 1) / L;
+  }
+
+  // Centroids — mean pixel position per surviving grain.
+  const centroids = new Float32Array((SIM_INITIAL_N + 1) * 2);
+  const counts = new Uint32Array(SIM_INITIAL_N + 1);
+  for (let i = 0; i < len; i++) {
+    const g = gMap[i];
+    if (g === 0) continue;
+    centroids[g * 2]     += i % W;
+    centroids[g * 2 + 1] += (i / W) | 0;
+    counts[g]++;
+  }
+  for (let g = 1; g <= SIM_INITIAL_N; g++) {
+    if (counts[g] > 0) {
+      centroids[g * 2]     /= counts[g];
+      centroids[g * 2 + 1] /= counts[g];
+    }
+  }
+
+  return { grainMap: gMap, boundaryMap: bMap, pixelRank, centroids };
+}
+
+/* Topology event (T2 in vertex-model terminology): a small grain
+   disappears, with its pixels absorbed by the neighbour it shares the
+   most boundary with. Pure T = 0 MC Potts on a lattice tends to stick
+   small grains at ~ R = 4 px because the discreteness pins them; the
+   explicit consolidation here is the standard way vertex/level-set
+   models handle the disappearance.                                       */
+function consolidateGrain(grid, gId, W, H) {
+  const touch = new Uint32Array(SIM_INITIAL_N + 1);
+  for (let i = 0; i < grid.length; i++) {
+    if (grid[i] !== gId) continue;
+    const x = i % W;
+    if (x > 0)     { const n = grid[i - 1]; if (n !== 0 && n !== gId) touch[n]++; }
+    if (x < W - 1) { const n = grid[i + 1]; if (n !== 0 && n !== gId) touch[n]++; }
+    if (i >= W)            { const n = grid[i - W]; if (n !== 0 && n !== gId) touch[n]++; }
+    if (i + W < grid.length){ const n = grid[i + W]; if (n !== 0 && n !== gId) touch[n]++; }
+  }
+  let best = 0, bestCount = 0;
+  for (let g = 1; g <= SIM_INITIAL_N; g++) {
+    if (touch[g] > bestCount) { bestCount = touch[g]; best = g; }
+  }
+  if (best === 0) return;
+  for (let i = 0; i < grid.length; i++) if (grid[i] === gId) grid[i] = best;
+}
+
+function findSmallestGrainId(grid) {
+  const counts = new Uint32Array(SIM_INITIAL_N + 1);
+  for (let i = 0; i < grid.length; i++) counts[grid[i]]++;
+  let smallest = 0, smallestCount = Infinity;
+  for (let g = 1; g <= SIM_INITIAL_N; g++) {
+    if (counts[g] > 0 && counts[g] < smallestCount) {
+      smallestCount = counts[g];
+      smallest = g;
+    }
+  }
+  return smallest;
+}
+
+/* Pre-bake the full simulation: alternates a handful of MC sweeps (for
+   organic boundary motion) with explicit T2 topology events that absorb
+   the smallest remaining grain into its dominant neighbour. Snapshot
+   after each pair so the user sees grain count drop monotonically as T
+   rises along the playhead.                                              */
+function runGrainGrowthSimulation() {
+  const W = SIM_SIZE, H = SIM_SIZE;
+
+  // Grain orientations — fixed at init, indexed by initial grain ID.
+  // Pearlite/bainite use only the primary (cosA, sinA) — lamellae or
+  // sheaves run along that direction. Martensite uses both axes
+  // (rotated 60°) so the rendered grain shows the classic crossed
+  // acicular pattern.
+  const oriRng = rngSeed(11);
+  GRAIN_ORIENTATIONS = new Array(SIM_INITIAL_N + 1);
+  GRAIN_ORIENTATIONS[0] = { cosA: 1, sinA: 0, cosB: 1, sinB: 0 };
+  for (let g = 1; g <= SIM_INITIAL_N; g++) {
+    const ang  = oriRng() * Math.PI;
+    const ang2 = ang + Math.PI / 3; // crossed needle axis
+    GRAIN_ORIENTATIONS[g] = {
+      cosA: Math.cos(ang),  sinA: Math.sin(ang),
+      cosB: Math.cos(ang2), sinB: Math.sin(ang2),
+    };
+  }
+
+  const grid = initSimGrid(W, H, SIM_INITIAL_N, 11);
+  const mcRng = rngSeed(42);
+
+  // A few MC sweeps before the first snapshot so the initial Voronoi
+  // boundaries pick up some curvature (otherwise they look rigid).
+  for (let s = 0; s < 6; s++) mcSweep(grid, W, H, mcRng);
+
+  SIM_SNAPSHOTS = [];
+  SIM_SNAPSHOTS.push(takeSnapshot(grid, W, H));     // snapshot 0: initial
+
+  // Target counts for the remaining snapshots (strictly decreasing).
+  const targets = [];
+  for (let i = 1; i < SIM_N_SNAPSHOTS; i++) {
+    const f = i / (SIM_N_SNAPSHOTS - 1);
+    targets.push(Math.round(SIM_INITIAL_N - f * (SIM_INITIAL_N - SIM_FINAL_N)));
+  }
+
+  const SWEEPS_BETWEEN = 4;
+  for (const target of targets) {
+    // Force grain count down to target via T2 consolidations
+    while (countGrains(grid) > target) {
+      const sId = findSmallestGrainId(grid);
+      if (sId === 0) break;
+      consolidateGrain(grid, sId, W, H);
+      // Short MC burst between consolidations so the absorbed boundary
+      // smooths out before the next snapshot.
+      for (let s = 0; s < 2; s++) mcSweep(grid, W, H, mcRng);
+    }
+    // Final relaxation sweeps to round off the boundaries.
+    for (let s = 0; s < SWEEPS_BETWEEN; s++) mcSweep(grid, W, H, mcRng);
+    SIM_SNAPSHOTS.push(takeSnapshot(grid, W, H));
+  }
+}
+
+/* T → snapshot index. The MC sim ran initial → final (many → few). For
+   "coalescence as T rises" we map low T → snapshot 0 (many small) and
+   high T → last snapshot (few large). Linear in T.                       */
+function snapshotIndexFromT(T) {
+  // Map the full reaction-product T range (M_S to T_aust) onto snapshots.
+  const u = Math.max(0, Math.min(1, (T - M_START_T) / (T_AUST_DEFAULT - M_START_T)));
+  return u * (SIM_SNAPSHOTS.length - 1);
+}
+
 function resizeMicro() {
   const dpr = window.devicePixelRatio || 1;
   const rect = microCanvas.getBoundingClientRect();
@@ -1208,8 +2181,7 @@ function resizeMicro() {
   MW = MH = target;
   microCanvas.width = MW; microCanvas.height = MH;
   microCtx.setTransform(1, 0, 0, 1, 0, 0);
-  buildGrains();
-  buildGrainMap();
+  if (SIM_SNAPSHOTS.length === 0) runGrainGrowthSimulation();
   if (currentState) renderMicro(currentState);
 }
 new ResizeObserver(resizeMicro).observe(microCanvas);
@@ -1222,111 +2194,244 @@ for (const k in PHASE_RGB) PHASE_U32[k] = packU32(PHASE_RGB[k]);
 const FALLBACK_U32  = packU32([200,200,200]);
 const TRANSPARENT_U32 = 0;
 
-/* Per-grain decision: returns a "style" tag for the renderer
-   styles:
-     'gamma'         — uniform γ green, with boundaries
-     'pearliteC'     — coarse lamellar α + Fe₃C
-     'pearliteF'     — fine lamellar α + Fe₃C
-     'bainiteUpper'  — pale matrix + α-coloured needles (per grain orientation)
-     'bainiteLower'  — pale matrix + dark-α-coloured needles (per grain, denser)
-     'martensite'    — cream matrix + light-blue laths, cross-oriented
-*/
-function styleForProduct(productName) {
-  if (productName === 'Coarse Pearlite') return 'pearliteC';
-  if (productName === 'Fine Pearlite')   return 'pearliteF';
-  return 'pearliteC';
+/* Resolve a panel state into the visual style the renderer uses.
+   For single-product modes returns { kind, spacing, frac, partial }.
+   For 'composite' (multi-leg paths) returns shell thresholds so the
+   renderer can paint concentric pearlite / bainite / martensite / γ
+   regions in one pass.                                                 */
+function productStyleFromState(state) {
+  const gs = state.grainStates || {};
+  const mode = gs.mode || 'allGamma';
+  const T    = (gs.T !== undefined) ? gs.T : (A1 + 50);
+  if (mode === 'composite') {
+    const c = gs.composite;
+    // Cumulative outer-shell thresholds, in rank-from-boundary order.
+    let r = 0;
+    const layers = [];
+    if (c.pearl > 0.001) layers.push({ kind:'pearlite',      spacing: pearliteSpacing(c.T_pearl ?? T, MW), end: (r += c.pearl) });
+    if (c.bainU > 0.001) layers.push({ kind:'bainite-upper', spacing: MW / 28, end: (r += c.bainU) });
+    if (c.bainL > 0.001) layers.push({ kind:'bainite-lower', spacing: MW / 70, end: (r += c.bainL) });
+    if (c.mart  > 0.001) layers.push({ kind:'martensite',    spacing: MW / 95, end: (r += c.mart)  });
+    return { kind:'composite', layers, gamma: c.gamma };
+  }
+  const frac = gs.frac ?? ((mode === 'allPearlite' || mode === 'allBainite'
+                          || mode === 'allMartensite') ? 1 : 0);
+  let kind = 'gamma';
+  let spacing = pearliteSpacing(T, MW);
+  if (mode === 'allPearlite' || mode === 'partialPearlite') {
+    kind = 'pearlite'; spacing = pearliteSpacing(T, MW);
+  } else if (mode === 'allBainite' || mode === 'partialBainite') {
+    kind = gs.upperBainite ? 'bainite-upper' : 'bainite-lower';
+    spacing = gs.upperBainite ? MW / 28 : MW / 70;
+  } else if (mode === 'allMartensite' || mode === 'partialMartensite') {
+    kind = 'martensite'; spacing = MW / 95;
+  }
+  const partial = mode === 'partialPearlite' || mode === 'partialBainite'
+               || mode === 'partialMartensite';
+  return { kind, spacing, frac, partial };
 }
 
-function computeGrainStyles(state) {
-  const gs = state.grainStates || { mode:'allGamma' };
-  const styles = new Array(GRAINS.length);
-  if (gs.mode === 'allGamma') {
-    for (let i = 0; i < GRAINS.length; i++) styles[i] = { style:'gamma' };
-    return styles;
+/* Paint one transformed pixel given its kind. Returns a packed ABGR. */
+function paintProductPixel(kind, dx, dy, ori, SP, C_ALPHA, C_FE3C,
+                            C_MART_LATH, C_MART_PLATE) {
+  const proj = dx * ori.cosA + dy * ori.sinA;
+  if (kind === 'pearlite') {
+    const stripe = Math.floor(proj / SP);
+    return (stripe & 1) === 0 ? C_ALPHA : C_FE3C;
   }
-  if (gs.mode === 'allPearlite') {
-    const st = styleForProduct(gs.productName);
-    for (let i = 0; i < GRAINS.length; i++) styles[i] = { style: st };
-    return styles;
+  if (kind === 'bainite-upper') {
+    const perp = dx * (-ori.sinA) + dy * ori.cosA;
+    const wob  = 0.18 * SP * Math.sin(perp * (2 * Math.PI) / (SP * 3));
+    const u    = ((proj + wob) / SP);
+    const f01  = u - Math.floor(u);
+    return f01 < 0.75 ? C_ALPHA : C_FE3C;
   }
-  if (gs.mode === 'partialPearlite' || gs.mode === 'cctMix') {
-    // Some grains fully transformed to pearlite; rest are still γ.
-    const f  = (gs.mode === 'partialPearlite') ? (gs.frac || 0) : (gs.fracDiff || 0);
-    const st = styleForProduct(gs.productName);
-    for (let i = 0; i < GRAINS.length; i++) {
-      styles[i] = GRAINS[i].rank < f ? { style: st } : { style:'gamma' };
-    }
-    return styles;
+  if (kind === 'bainite-lower') {
+    const SP2  = SP * 0.55;
+    const perp = dx * (-ori.sinA) + dy * ori.cosA;
+    const u    = (proj / SP);
+    const f01  = u - Math.floor(u);
+    const v    = (perp / SP2);
+    const fv   = v - Math.floor(v);
+    if (f01 > 0.85) return C_FE3C;
+    if (fv  < 0.15 && f01 > 0.25 && f01 < 0.75) return C_FE3C;
+    return C_ALPHA;
   }
-  for (let i = 0; i < GRAINS.length; i++) styles[i] = { style:'gamma' };
-  return styles;
+  if (kind === 'martensite') {
+    const proj2 = dx * ori.cosB + dy * ori.sinB;
+    const f1 = Math.abs((proj  / SP) - Math.round(proj  / SP));
+    const f2 = Math.abs((proj2 / SP) - Math.round(proj2 / SP));
+    return (f1 < 0.18 || f2 < 0.18) ? C_MART_LATH : C_MART_PLATE;
+  }
+  return C_ALPHA;
 }
 
-/* Renderer — paints microstructure via ImageData */
-function renderMicro(state) {
-  if (!grainMap) return;
-  const grainStyles = computeGrainStyles(state);
-  const N = GRAINS.length;
-
-  // Pre-resolve per-grain numeric arrays for the hot loop (0 γ · 1 coarse · 2 fine)
-  const STYLE = new Uint8Array(N);
-  const Cx = new Float32Array(N), Cy = new Float32Array(N);
-  const CosA = new Float32Array(N), SinA = new Float32Array(N);
-  const STYLE_MAP = { gamma:0, pearliteC:1, pearliteF:2 };
-  for (let i = 0; i < N; i++) {
-    STYLE[i] = STYLE_MAP[grainStyles[i].style] ?? 0;
-    Cx[i] = GRAINS[i].cx; Cy[i] = GRAINS[i].cy;
-    CosA[i] = GRAINS[i].cosA; SinA[i] = GRAINS[i].sinA;
-  }
-
-  // Pearlite interlamellar spacings (pixels, scaled to canvas size)
-  const SP_COARSE = MW / 28;
-  const SP_FINE   = MW / 60;
-
+/* Render one MC-Potts snapshot into a 32-bit RGBA buffer. Handles four
+   product styles: pearlite (lamellae), upper/lower bainite (sheaves of
+   α with carbide films between laths), and martensite (criss-cross
+   acicular plates). For partial modes the product grows inward from
+   grain boundaries — controlled by the per-pixel `pixelRank` baked
+   into the snapshot. */
+function renderSnapshotToBuffer(snap, style, buf) {
   const C_GAMMA = PHASE_U32['γ'];
   const C_ALPHA = PHASE_U32['α'];
   const C_FE3C  = PHASE_U32['Fe3C'];
+  // Martensite — slate-blue palette: bright laths on a darker prior-γ.
+  const C_MART_PLATE = 0xff_45_42_5a | 0;
+  const C_MART_LATH  = 0xff_d8_d2_e2 | 0;
+  const W = SIM_SIZE, H = SIM_SIZE;
+  const grainMap   = snap.grainMap;
+  const boundary   = snap.boundaryMap;
+  const pixelRank  = snap.pixelRank;
+  const centroids  = snap.centroids;
+  const scaleX = W / MW, scaleY = H / MH;
 
-  const img = microCtx.createImageData(MW, MH);
-  const buf = new Uint32Array(img.data.buffer);
-  const len = MW * MH;
+  const isComposite = style.kind === 'composite';
+  const SP = isComposite ? 0 : Math.max(2, style.spacing);
+  const visFrac = !isComposite && style.partial
+    ? Math.sqrt(Math.max(0, style.frac))
+    : (style.frac ?? 0);
+  const transformAll = !isComposite && !style.partial && style.kind !== 'gamma';
 
-  for (let idx = 0; idx < len; idx++) {
-    const g = grainMap[idx];
-    if (g === 0) { buf[idx] = TRANSPARENT_U32; continue; }
-    const gi = g - 1;
-    const x = idx % MW;
-    const y = (idx / MW) | 0;
-    const s = STYLE[gi];
-    let col;
+  for (let y = 0; y < MH; y++) {
+    const sy = Math.min(H - 1, (y * scaleY) | 0);
+    for (let x = 0; x < MW; x++) {
+      const sx = Math.min(W - 1, (x * scaleX) | 0);
+      const sidx = sy * W + sx;
+      const idx = y * MW + x;
+      const g = grainMap[sidx];
+      if (g === 0) { buf[idx] = TRANSPARENT_U32; continue; }
 
-    if (s === 0) {
-      col = C_GAMMA;
-    } else if (s === 1 || s === 2) {
-      // Lamellar α + Fe₃C — pearlite. Spacing differs between coarse and fine.
-      const sp = (s === 1) ? SP_COARSE : SP_FINE;
-      const proj = (x - Cx[gi]) * CosA[gi] + (y - Cy[gi]) * SinA[gi];
-      const stripe = Math.floor(proj / sp);
-      col = (stripe & 1) === 0 ? C_ALPHA : C_FE3C;
-    } else {
-      col = FALLBACK_U32;
-    }
+      const rank = pixelRank[sidx];
+      const onBoundary = boundary[sidx] !== 0;
 
-    // Grain boundaries (only between non-γ grains, since γ is a continuous parent matrix)
-    if (boundaryMap[idx]) {
-      const r = col & 0xff;
-      const g8 = (col >>> 8) & 0xff;
-      const b = (col >>> 16) & 0xff;
-      buf[idx] = (0xff << 24) | ((Math.round(b*0.42) & 0xff) << 16) | ((Math.round(g8*0.42) & 0xff) << 8) | (Math.round(r*0.42) & 0xff);
-    } else {
+      // Determine which product kind (if any) this pixel belongs to.
+      // Composite mode dispatches by rank thresholds; single-product
+      // modes use the global frac.
+      let pixelKind = 'gamma';
+      let pixelSP = SP;
+      if (isComposite) {
+        for (let li = 0; li < style.layers.length; li++) {
+          if (rank <= style.layers[li].end) {
+            pixelKind = style.layers[li].kind;
+            pixelSP   = Math.max(2, style.layers[li].spacing);
+            break;
+          }
+        }
+      } else if (style.kind !== 'gamma' && (transformAll || rank <= visFrac)) {
+        pixelKind = style.kind;
+      }
+
+      if (pixelKind === 'gamma') {
+        buf[idx] = onBoundary ? 0xff202020 : C_GAMMA;
+        continue;
+      }
+
+      const cxCanvas = centroids[g * 2]     / scaleX;
+      const cyCanvas = centroids[g * 2 + 1] / scaleY;
+      const ori = GRAIN_ORIENTATIONS[g];
+      const dx = x - cxCanvas, dy = y - cyCanvas;
+      let col = paintProductPixel(pixelKind, dx, dy, ori, pixelSP,
+                                  C_ALPHA, C_FE3C, C_MART_LATH, C_MART_PLATE);
+
+      // Growth-front darkening (single-product partial only) + boundary
+      // darkening so grain outlines stay legible.
+      const isFront = !isComposite && style.partial
+                      && rank > visFrac - 0.06 && rank <= visFrac;
+      const darkenFactor = onBoundary ? 0.35 : (isFront ? 0.55 : 1.0);
+      if (darkenFactor < 1.0) {
+        const rC = col & 0xff;
+        const gC = (col >>> 8) & 0xff;
+        const bC = (col >>> 16) & 0xff;
+        col = (0xff << 24)
+            | ((Math.round(bC * darkenFactor) & 0xff) << 16)
+            | ((Math.round(gC * darkenFactor) & 0xff) << 8)
+            |  (Math.round(rC * darkenFactor) & 0xff);
+      }
       buf[idx] = col;
     }
   }
+}
+
+/* Renderer entry point. Smooth snapshot transition via a *boundary-aware*
+   hybrid blend: pure snapshot for most of each T-interval, then a narrow
+   blend zone at the midpoint between snapshots. In the blend zone:
+   • where neither snapshot has a boundary, blend pixel colors smoothly;
+   • where only one snapshot has a boundary, fade that boundary toward
+     the other snapshot's color (boundaries appear / disappear smoothly);
+   • where both have a boundary (the common case — adjacent snaps differ
+     by only a few grains), keep it solid dark.
+   This avoids the ghost-edge blur of a pure crossfade while still giving
+   a continuous transition as the slider sweeps T. */
+function renderMicro(state) {
+  if (SIM_SNAPSHOTS.length === 0) return;
+  const gs = state.grainStates || { mode:'allGamma', T: A1 + 50 };
+  const T  = (gs.T !== undefined) ? gs.T : A1 + 50;
+  const style = productStyleFromState(state);
+
+  const sReal = snapshotIndexFromT(T);
+  const s1Idx = Math.max(0, Math.min(SIM_SNAPSHOTS.length - 1, Math.floor(sReal)));
+  const s2Idx = Math.min(SIM_SNAPSHOTS.length - 1, s1Idx + 1);
+  const tFrac = sReal - s1Idx;
+  // Sharpen with smoothstep on a narrow band so most T values render a
+  // single snapshot crisply; the blend only kicks in mid-interval.
+  const a = (tFrac <= 0.35) ? 0
+          : (tFrac >= 0.65) ? 1
+          : (() => { const u = (tFrac - 0.35) / 0.30; return u * u * (3 - 2 * u); })();
+
+  const img = microCtx.createImageData(MW, MH);
+  const buf = new Uint32Array(img.data.buffer);
+
+  if (s1Idx === s2Idx || a === 0) {
+    renderSnapshotToBuffer(SIM_SNAPSHOTS[s1Idx], style, buf);
+  } else if (a === 1) {
+    renderSnapshotToBuffer(SIM_SNAPSHOTS[s2Idx], style, buf);
+  } else {
+    if (!renderMicro._scratch || renderMicro._scratch.length !== buf.length) {
+      renderMicro._scratch = new Uint32Array(buf.length);
+    }
+    const buf2 = renderMicro._scratch;
+    renderSnapshotToBuffer(SIM_SNAPSHOTS[s1Idx], style, buf);
+    renderSnapshotToBuffer(SIM_SNAPSHOTS[s2Idx], style, buf2);
+
+    const b1 = SIM_SNAPSHOTS[s1Idx].boundaryMap;
+    const b2 = SIM_SNAPSHOTS[s2Idx].boundaryMap;
+    const W = SIM_SIZE, H = SIM_SIZE;
+    const scaleX = W / MW, scaleY = H / MH;
+    const ia = 1 - a;
+
+    for (let y = 0; y < MH; y++) {
+      const sy = Math.min(H - 1, (y * scaleY) | 0);
+      for (let x = 0; x < MW; x++) {
+        const sx = Math.min(W - 1, (x * scaleX) | 0);
+        const sidx = sy * W + sx;
+        const idx = y * MW + x;
+        const p1 = buf[idx], p2 = buf2[idx];
+        if (p1 === 0 && p2 === 0) { buf[idx] = 0; continue; }
+        const isB1 = b1[sidx] !== 0;
+        const isB2 = b2[sidx] !== 0;
+        if (isB1 && isB2) {
+          // Shared boundary — keep buf (snap1 already rendered it dark).
+          continue;
+        }
+        // Otherwise blend p1 and p2 with weight (1-a, a). Disappearing/
+        // appearing boundaries naturally fade in/out because p1 is dark
+        // where snap1 has a boundary and p2 is dark where snap2 does.
+        if (p1 === p2) continue;
+        const r1c = p1 & 0xff,         r2c = p2 & 0xff;
+        const g1c = (p1 >>> 8)  & 0xff, g2c = (p2 >>> 8)  & 0xff;
+        const b1c = (p1 >>> 16) & 0xff, b2c = (p2 >>> 16) & 0xff;
+        const r = (r1c * ia + r2c * a) | 0;
+        const g = (g1c * ia + g2c * a) | 0;
+        const b = (b1c * ia + b2c * a) | 0;
+        buf[idx] = (0xff << 24) | ((b & 0xff) << 16) | ((g & 0xff) << 8) | (r & 0xff);
+      }
+    }
+  }
   microCtx.putImageData(img, 0, 0);
-  // border circle
   microCtx.beginPath();
   microCtx.arc(MW/2, MH/2, Math.min(MW, MH)/2 - 3, 0, 2*Math.PI);
-  microCtx.lineWidth = Math.max(1.4, MW / 240);
+  microCtx.lineWidth = Math.max(0.8, MW / 480);
   microCtx.strokeStyle = '#888';
   microCtx.stroke();
 }
@@ -1346,15 +2451,33 @@ const elLeverBar   = document.getElementById('lever-bar');
 const elLeverEnd   = document.getElementById('lever-endpoints');
 const elReactEqn   = document.getElementById('reaction-eqn');
 const elLegend     = document.getElementById('phase-legend');
+const elProdLegend = document.getElementById('product-legend');
 const elHvVal      = document.getElementById('hardness-val');
 const elHvMark     = document.getElementById('hardness-marker');
+const elAvramiRow  = document.getElementById('avrami-row');
+const elReadoutN   = document.getElementById('readout-n');
+const elReadoutK   = document.getElementById('readout-k');
 
 function updateState(state) {
-  elLabX.textContent = 'Time (hold)';
-  elLabY.textContent = 'Temperature';
-  elLeverH4.textContent = 'Hold State';
-  elReadoutX.textContent = formatTime(Math.pow(10, tttDot.x));
-  elReadoutY.textContent = tttDot.y.toFixed(0) + ' °C';
+  const pt = state._pt;
+  elLabX.textContent = pt.leg === 'cooling' ? 'Clock time (cooling)' : 'Clock time (hold)';
+  elLabY.textContent = pt.leg === 'cooling' ? 'Temperature (falling)' : 'T_iso';
+  elLeverH4.textContent = pt.leg === 'cooling' ? 'Playhead — cooling A→B' : 'Playhead — hold B→D';
+  const heldStr = pt.leg === 'cooling'
+    ? formatTime(Math.pow(10, pt.xLog))
+    : `${formatTime(Math.pow(10, pt.xLog))}  (Δt = ${formatTime(state._holdElapsed)})`;
+  elReadoutX.textContent = heldStr;
+  elReadoutY.textContent = pt.T.toFixed(0) + ' °C';
+
+  // Avrami readout — only meaningful inside the pearlite window.
+  if (state.k !== undefined && state.n !== undefined) {
+    elAvramiRow.style.display = '';
+    elReadoutN.textContent = state.n.toFixed(2);
+    elReadoutK.textContent = state.k.toExponential(2);
+  } else {
+    elAvramiRow.style.display = 'none';
+  }
+
   elStageTitle.textContent = state.stageTitle;
   elStageDesc.textContent  = state.stageDesc;
 
@@ -1400,6 +2523,7 @@ function updateState(state) {
 
   // Legend
   buildLegend(state.activePhases);
+  buildProductLegend(state);
 }
 
 const LEGEND_PHASES = [
@@ -1426,31 +2550,112 @@ function buildLegend(activeNames) {
   }
 }
 
-/* ════════════════════════════════════════════════════════════════════
-   KEY FEATURES
-   ──────────────────────────────────────────────────────────────────── */
-const KEY_FEATURES = [
-  { title:'Two completion curves',
-    body:'The <b style="color:#c43c3c">red begin curve</b> marks where pearlite first nucleates (~ 0 %) and the <b style="color:#3d8a4f">green completion curve</b> marks ~ 100 %. The horizontal distance between them is how long the reaction takes at that temperature.' },
-  { title:'The "nose" at ~ 525–540 °C',
-    body:'Transformation is fastest where the curves bottom out. The product of nucleation rate × carbon-diffusion rate peaks here: above it, diffusion is fast but driving force is small; below it, driving force is huge but diffusion is sluggish.' },
-  { title:'Coarse vs fine pearlite',
-    body:'Higher hold T (just below A₁) → few nuclei, wide interlamellar spacing → <b>coarse pearlite</b> (≈ 200 HV). Lower hold T (just above the nose) → many nuclei, narrow spacing → <b>fine pearlite</b> (≈ 320 HV).' },
-  { title:'Above A₁: γ is stable',
-    body:'Above the eutectoid line at 727 °C the alloy stays as single-phase austenite indefinitely. Drop below it and γ becomes thermodynamically unstable — but the reaction still takes a finite, T-dependent time to begin.' },
-  { title:'Reading the diagram',
-    body:'A horizontal hold at temperature T sweeps the dot left → right with time. Cross the red curve to start pearlite forming, then the green curve to complete it.' },
-  { title:'Worked example — pearlite at 680 °C',
-    body:'Drag to 680 °C and read across: nucleation begins at ≈ 25 s (red) and completes at ≈ 400 s (green). Almost two decades of time across the reaction.' },
+/* Reaction-product legend under the microstructure canvas. Each chip
+   carries a small visual swatch that mimics the on-canvas pattern, so
+   students can map the rendered look to its name. The currently active
+   product is highlighted from the state's grainStates.mode. */
+const PRODUCT_LEGEND = [
+  { key:'gamma',         name:'Austenite (γ)',  sw:'sw-gamma',
+    img:'austenite.png',
+    desc:'Stable FCC parent phase — uniform light field with no lamellae.' },
+  { key:'pearlite',      name:'Pearlite',       sw:'sw-pearlite',
+    img:'pearlite.png',
+    desc:'Alternating lamellae of α-ferrite + Fe₃C cementite (parallel stripes).' },
+  { key:'bainite-upper', name:'Upper Bainite',  sw:'sw-bainiteU',
+    img:'upper_bainite.png',
+    desc:'Feathery sheaves of α with carbide films between laths (350–525 °C).' },
+  { key:'bainite-lower', name:'Lower Bainite',  sw:'sw-bainiteL',
+    img:'lower_banite.png',
+    desc:'Fine α plates with intra-plate carbide precipitates (250–350 °C).' },
+  { key:'martensite',    name:'Martensite',     sw:'sw-martensite',
+    img:'martensite.png',
+    desc:'Crossed needle-like α′ plates — diffusionless shear below M_start.' },
 ];
-function buildKeyFeatures() {
-  const el = document.getElementById('key-features');
-  el.innerHTML = '';
-  for (const f of KEY_FEATURES) {
-    const div = document.createElement('div');
-    div.className = 'feat';
-    div.innerHTML = `<h4>${f.title}</h4><p>${f.body}</p>`;
-    el.appendChild(div);
+/* Returns the fraction (0..1) present for every legend key. Used by
+   buildProductLegend to shade every present chip proportionally to its
+   fraction — darker = larger fraction, instead of single-winner. */
+function productFractions(state) {
+  const gs = state.grainStates || {};
+  const mode = gs.mode || 'allGamma';
+  const f = { gamma:0, pearlite:0, 'bainite-upper':0, 'bainite-lower':0, martensite:0 };
+  if (mode === 'allGamma') {
+    f.gamma = 1;
+  } else if (mode === 'allPearlite') {
+    f.pearlite = 1;
+  } else if (mode === 'partialPearlite') {
+    f.pearlite = gs.frac ?? 0; f.gamma = 1 - f.pearlite;
+  } else if (mode === 'allBainite' || mode === 'partialBainite') {
+    const k = gs.upperBainite ? 'bainite-upper' : 'bainite-lower';
+    f[k] = gs.frac ?? 1; f.gamma = 1 - f[k];
+  } else if (mode === 'allMartensite' || mode === 'partialMartensite') {
+    f.martensite = gs.frac ?? 1; f.gamma = 1 - f.martensite;
+  } else if (mode === 'composite' && gs.composite) {
+    const c = gs.composite;
+    f.gamma            = c.gamma;
+    f.pearlite         = c.pearl;
+    f['bainite-upper'] = c.bainU;
+    f['bainite-lower'] = c.bainL;
+    f.martensite       = c.mart;
+  }
+  return f;
+}
+/* Map a 0..1 phase fraction to an inline chip style. Larger fractions
+   → darker background. Chips with frac ≈ 0 fall back to the default
+   off-white style. Text colour flips to white once the chip is dark
+   enough that black text would lose contrast. */
+function shadeChip(chip, frac) {
+  if (!chip) return;
+  if (!isFinite(frac) || frac < 0.005) {
+    chip.style.backgroundColor = '';
+    chip.style.borderColor = '';
+    chip.style.color = '';
+    chip.dataset.frac = '0';
+    return;
+  }
+  // Smooth ramp: small fractions are still visibly highlighted (so the
+  // user can see the chip is "present"), large fractions saturate to
+  // near-black. Intensity is opacity over the dark base #1a1a1a.
+  const intensity = Math.min(1, 0.18 + 0.82 * frac);
+  chip.style.backgroundColor = `rgba(26, 26, 26, ${intensity.toFixed(3)})`;
+  chip.style.borderColor     = `rgba(26, 26, 26, ${Math.max(0.4, intensity).toFixed(3)})`;
+  chip.style.color           = (intensity > 0.45) ? '#fff' : '';
+  chip.dataset.frac = frac.toFixed(3);
+}
+
+function buildProductLegend(state) {
+  if (!elProdLegend) return;
+  const fracs = productFractions(state);
+  if (elProdLegend.childElementCount === PRODUCT_LEGEND.length) {
+    // Just re-apply the per-chip shading on subsequent updates.
+    for (const child of elProdLegend.children) {
+      shadeChip(child, fracs[child.dataset.key] || 0);
+    }
+    return;
+  }
+  elProdLegend.innerHTML = '';
+  for (const p of PRODUCT_LEGEND) {
+    const chip = document.createElement('div');
+    chip.className = 'prod-chip';
+    chip.dataset.key = p.key;
+    // Real micrograph if we have one; otherwise the CSS-painted swatch.
+    let visual;
+    if (p.img) {
+      visual = document.createElement('img');
+      visual.className = 'micro-thumb';
+      visual.src = p.img;
+      visual.alt = p.name + ' micrograph';
+      visual.loading = 'lazy';
+    } else {
+      visual = document.createElement('div');
+      visual.className = 'swatch ' + p.sw;
+    }
+    const meta = document.createElement('div'); meta.className = 'meta';
+    const nm = document.createElement('span'); nm.className = 'nm'; nm.textContent = p.name;
+    const ds = document.createElement('span'); ds.className = 'ds'; ds.textContent = p.desc;
+    meta.appendChild(nm); meta.appendChild(ds);
+    chip.appendChild(visual); chip.appendChild(meta);
+    elProdLegend.appendChild(chip);
+    shadeChip(chip, fracs[p.key] || 0);
   }
 }
 
@@ -1459,14 +2664,111 @@ function buildKeyFeatures() {
    ──────────────────────────────────────────────────────────────────── */
 let currentState = null;
 function renderAll() {
-  currentState = getStateTTT(tttDot.x, tttDot.y);
+  clampDot(tttDot);
+  clampPath();
+  clampPlayhead();
+
+  let pt, holdElapsed, phase;
+  if (viewMode === 'path') {
+    pt = pathPointAtS(playhead.s);
+    holdElapsed = holdElapsedAtS(playhead.s);
+    phase = pt.leg;
+    currentState = getStatePath(playhead.s, pt);
+  } else {
+    pt = { xLog: tttDot.x, T: tttDot.y, leg: 'free', f: 0 };
+    holdElapsed = Math.pow(10, tttDot.x);
+    phase = 'free';
+    currentState = getStateTTT(pt.xLog, pt.T, holdElapsed, phase);
+  }
+  currentState._pt = pt;
+  currentState._holdElapsed = holdElapsed;
+  currentState._viewMode = viewMode;
   redraw();
   renderMicro(currentState);
   updateState(currentState);
 }
 
+/* Build a panel/microstructure state from the multi-leg cumulative
+   fractions. Replaces getStateTTT for path mode so partial pearlite,
+   bainite, and martensite can co-exist (as in the 4-pt austemper /
+   martemper paths the user typically wants to visualise). */
+function getStatePath(s, pt) {
+  const T = pt.T;
+  if (T >= A1 && s <= PATH_COOL_FRAC * 0.5) {
+    return {
+      stageTitle: 'Austenite (stable) — austenitising',
+      stageDesc: `T = ${T.toFixed(0)} °C is above the eutectoid (727 °C). γ is the equilibrium phase; the cooling clock starts once you drop below A₁.`,
+      phases: [{ name:'γ (austenite)', frac:1, seg:'seg-gamma', color: PHASE_HEX['γ'] }],
+      hv: HV_GAMMA, activePhases: ['γ'], reactionEqn: '',
+      grainStates: { mode:'allGamma', T },
+    };
+  }
+  const c = cumulativePhasesAtS(s);
+  const total = c.gamma + c.pearl + c.bainU + c.bainL + c.mart;
+  const norm = total > 1e-6 ? 1/total : 1;
+  const gamma = c.gamma * norm;
+  const pearl = c.pearl * norm;
+  const bainU = c.bainU * norm;
+  const bainL = c.bainL * norm;
+  const mart  = c.mart  * norm;
+  const pearlName = c.T_pearl !== null ? pearliteName(c.T_pearl) : 'Pearlite';
+  const pearlSeg  = c.T_pearl !== null ? pearliteSeg(c.T_pearl)  : 'seg-pearliteC';
+  const phases = [];
+  if (pearl > 0.001) phases.push({ name: pearlName,       frac: pearl, seg: pearlSeg,        color:'#7a5e2a' });
+  if (bainU > 0.001) phases.push({ name:'Upper Bainite',  frac: bainU, seg:'seg-bainiteU',   color:'#5a4a8a' });
+  if (bainL > 0.001) phases.push({ name:'Lower Bainite',  frac: bainL, seg:'seg-bainiteL',   color:'#4a3d72' });
+  if (mart  > 0.001) phases.push({ name:'Martensite',     frac: mart,  seg:'seg-martensite', color:'#5a5a78' });
+  if (gamma > 0.001) phases.push({ name:'γ (austenite)',  frac: gamma, seg:'seg-gamma',      color: PHASE_HEX['γ'] });
+
+  const hvP = c.T_pearl !== null ? pearliteHV(c.T_pearl) : HV_FINE;
+  const hv  = hvP * pearl
+            + HV_BAINITE_UPPER * bainU
+            + HV_BAINITE_LOWER * bainL
+            + HV_MARTENSITE    * mart
+            + HV_GAMMA         * gamma;
+
+  // Choose dominant product for the title.
+  let title, desc;
+  const winner = phases[0] ? phases[0].name : 'γ (austenite)';
+  if (phases.length === 1) {
+    title = (gamma > 0.99) ? 'Austenite — incubation'
+          : `Complete — ${winner}`;
+    desc  = `T = ${T.toFixed(0)} °C, single-phase microstructure (${(phases[0].frac*100).toFixed(0)} % ${phases[0].name}).`;
+  } else if (phases.length === 2) {
+    title = `${phases[0].name} + ${phases[1].name}`;
+    desc  = `Mixed microstructure — ${phases[0].name} ${(phases[0].frac*100).toFixed(0)} %, ${phases[1].name} ${(phases[1].frac*100).toFixed(0)} %.`;
+  } else {
+    title = `Multi-phase — ${winner} + …`;
+    desc  = `Composite microstructure from a multi-step path: ` +
+      phases.map(p => `${p.name} ${(p.frac*100).toFixed(0)} %`).join(', ') + '.';
+  }
+
+  // Active phase list for the legend.
+  const activePhases = [];
+  if (gamma > 0.005) activePhases.push('γ');
+  if (pearl > 0.005) activePhases.push(pearlName);
+  if (bainU > 0.005) activePhases.push('Upper Bainite');
+  if (bainL > 0.005) activePhases.push('Lower Bainite');
+  if (mart  > 0.005) activePhases.push('Martensite');
+
+  // For the microstructure renderer, package the multi-phase composition.
+  // The renderer paints concentric shells (outermost → innermost) using
+  // the order pearlite, upper bainite, lower bainite, martensite, γ.
+  return {
+    stageTitle: title, stageDesc: desc,
+    phases,
+    hv, activePhases,
+    reactionEqn: (pearl + bainU + bainL > 0.005)
+      ? '<b>γ</b> → <b>α</b> + <b>Fe₃C</b><br><span style="font-style:italic">diffusional (pearlite / bainite) ± diffusionless (martensite)</span>'
+      : (mart > 0.005 ? '<b>γ</b> → <b>α′</b> (BCT martensite, diffusionless)' : ''),
+    grainStates: { mode:'composite', T,
+                   composite: { gamma, pearl, bainU, bainL, mart,
+                                T_pearl: c.T_pearl, T_bainU: c.T_bainU,
+                                T_bainL: c.T_bainL } },
+  };
+}
+
 /* ─── Init ─── */
-buildKeyFeatures();
 resizeDia();
 resizeMicro();
 renderAll();
