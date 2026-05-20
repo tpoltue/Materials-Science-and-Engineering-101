@@ -572,6 +572,7 @@ button.reset:hover { background: #fff; color: var(--ink); border-color: var(--li
       </div>
       <label class="check-row"><input type="checkbox" id="showCPD"> Show close-packed direction</label>
       <label class="check-row"><input type="checkbox" id="showCell" checked> Show unit cell edges</label>
+      <label class="check-row"><input type="checkbox" id="showCropped"> Crop atoms to cell</label>
       <label class="check-row hcp-only"><input type="checkbox" id="showTetra"> Show tetrahedron (for c/a derivation)</label>
       <div class="legend">
         <span><span class="swatch cp"></span> close-packed direction</span>
@@ -599,6 +600,9 @@ button.reset:hover { background: #fff; color: var(--ink); border-color: var(--li
 </div>
 
 </div><!-- /.wrap -->
+
+<script src="auth.js"></script>
+<script src="Ch3_APF_gates.js"></script>
 
 <script>
 /* =========================================================================
@@ -632,6 +636,17 @@ const SQRT3 = Math.sqrt(3);
 const SQRT2 = Math.sqrt(2);
 const SQRT3_2 = SQRT3/2;
 const C_OVER_A = Math.sqrt(8/3);
+
+// "Crop atoms to cell" — HCP middle atoms get repositioned + the cell gets
+// vertically compressed so the three middle atoms touch each other, touch
+// the hex walls, AND touch the top/bottom face atoms. This is a visualisation
+// choice; real HCP geometry uses d = 1/√3 and c = a·√(8/3).
+const HCP_MIDDLE_COMPACT_D = Math.sqrt(3) / (Math.sqrt(3) + 2);             // ≈ 0.464
+const HCP_MIDDLE_COMPACT_R = Math.sqrt(3) / 2 - HCP_MIDDLE_COMPACT_D;       // ≈ 0.402
+const HCP_CROPPED_C = 2 * Math.sqrt(
+  Math.pow(0.5 + HCP_MIDDLE_COMPACT_R, 2) - HCP_MIDDLE_COMPACT_D * HCP_MIDDLE_COMPACT_D
+);                                                                          // ≈ 1.548
+const HCP_CROPPED_Z = HCP_CROPPED_C / C_OVER_A;                             // ≈ 0.948
 function bar(n) { return String(n) + '̄'; }
 
 /* =========================================================================
@@ -809,6 +824,7 @@ let atomScale = 0.3;
 let showCPD = false;
 let showCell = true;
 let showTetra = false;
+let showCropped = false;
 
 function project(p, w, h){
   const s = current === 'hcp'
@@ -854,11 +870,212 @@ function sameVec(p, q){
   return approxEq(p[0],q[0]) && approxEq(p[1],q[1]) && approxEq(p[2],q[2]);
 }
 
+/* =========================================================================
+   3D Boolean clip (sphere ∩ unit cell) — used when "Crop atoms to cell" is on
+   ========================================================================= */
+function generateSphereMesh(latRings, lonSegs) {
+  const verts = [];
+  const tris = [];
+  verts.push([0, 0, 1]);
+  for (let i = 1; i < latRings; i++) {
+    const theta = Math.PI * i / latRings;
+    const sinT = Math.sin(theta), cosT = Math.cos(theta);
+    for (let j = 0; j < lonSegs; j++) {
+      const phi = 2 * Math.PI * j / lonSegs;
+      verts.push([sinT * Math.cos(phi), sinT * Math.sin(phi), cosT]);
+    }
+  }
+  const southIdx = verts.length;
+  verts.push([0, 0, -1]);
+  for (let j = 0; j < lonSegs; j++) tris.push([0, 1 + j, 1 + (j + 1) % lonSegs]);
+  for (let i = 0; i < latRings - 2; i++) {
+    const a = 1 + i * lonSegs;
+    const b = a + lonSegs;
+    for (let j = 0; j < lonSegs; j++) {
+      const j2 = (j + 1) % lonSegs;
+      tris.push([a + j, b + j, b + j2]);
+      tris.push([a + j, b + j2, a + j2]);
+    }
+  }
+  const last = 1 + (latRings - 2) * lonSegs;
+  for (let j = 0; j < lonSegs; j++) tris.push([southIdx, last + (j + 1) % lonSegs, last + j]);
+  return { verts, tris };
+}
+const SPHERE_MESH = (() => {
+  const m = generateSphereMesh(32, 48);
+  m.normals = m.tris.map(tri => {
+    let nx = 0, ny = 0, nz = 0;
+    for (const i of tri) { nx += m.verts[i][0]; ny += m.verts[i][1]; nz += m.verts[i][2]; }
+    const L = Math.hypot(nx, ny, nz) || 1;
+    return [nx/L, ny/L, nz/L];
+  });
+  return m;
+})();
+const LIGHT_DIR = (() => {
+  const v = [-0.30, 0.50, 0.80];
+  const L = Math.hypot(v[0], v[1], v[2]);
+  return [v[0]/L, v[1]/L, v[2]/L];
+})();
+
+function clipPolyByPlane(poly, plane) {
+  if (!poly || poly.length < 3) return [];
+  const out = [];
+  const nx = plane.n[0], ny = plane.n[1], nz = plane.n[2], d = plane.d;
+  for (let i = 0; i < poly.length; i++) {
+    const cur = poly[i];
+    const next = poly[(i + 1) % poly.length];
+    const dCur  = cur[0]*nx + cur[1]*ny + cur[2]*nz - d;
+    const dNext = next[0]*nx + next[1]*ny + next[2]*nz - d;
+    const inCur = dCur >= 0, inNext = dNext >= 0;
+    if (inCur) out.push(cur);
+    if (inCur !== inNext) {
+      const t = dCur / (dCur - dNext);
+      out.push([
+        cur[0] + t * (next[0] - cur[0]),
+        cur[1] + t * (next[1] - cur[1]),
+        cur[2] + t * (next[2] - cur[2]),
+      ]);
+    }
+  }
+  return out;
+}
+
+function getCellPlanes() {
+  if (current === 'hcp') {
+    const planes = [];
+    const apo = Math.sqrt(3) / 2;
+    for (let k = 0; k < 6; k++) {
+      const th = k * Math.PI / 3 + Math.PI / 6;
+      planes.push({ n: [-Math.cos(th), -Math.sin(th), 0], d: -apo });
+    }
+    planes.push({ n: [0, 0,  1], d:  0 });
+    planes.push({ n: [0, 0, -1], d: -(showCropped ? HCP_CROPPED_C : C_OVER_A) });
+    return planes;
+  }
+  return [
+    { n: [ 1, 0, 0], d:  0 }, { n: [-1, 0, 0], d: -1 },
+    { n: [ 0, 1, 0], d:  0 }, { n: [ 0,-1, 0], d: -1 },
+    { n: [ 0, 0, 1], d:  0 }, { n: [ 0, 0,-1], d: -1 },
+  ];
+}
+
+function renderClippedAtomMesh(atomPos, r, color, planes, w, h, txFn) {
+  // Skip planes too far away to cut this atom.
+  const cutPlanes = [];
+  for (const pl of planes) {
+    const dist = atomPos[0]*pl.n[0] + atomPos[1]*pl.n[1] + atomPos[2]*pl.n[2] - pl.d;
+    if (dist <= -r) return;       // atom is entirely outside this plane
+    if (dist <  r) cutPlanes.push(pl);
+  }
+
+  const polys = [];
+  const V = SPHERE_MESH.verts, TRIS = SPHERE_MESH.tris, NORMS = SPHERE_MESH.normals;
+
+  // 1. Clipped sphere triangles
+  for (let ti = 0; ti < TRIS.length; ti++) {
+    const tri = TRIS[ti];
+    const N = NORMS[ti];
+    let poly = [
+      [atomPos[0] + r*V[tri[0]][0], atomPos[1] + r*V[tri[0]][1], atomPos[2] + r*V[tri[0]][2]],
+      [atomPos[0] + r*V[tri[1]][0], atomPos[1] + r*V[tri[1]][1], atomPos[2] + r*V[tri[1]][2]],
+      [atomPos[0] + r*V[tri[2]][0], atomPos[1] + r*V[tri[2]][1], atomPos[2] + r*V[tri[2]][2]],
+    ];
+    for (const pl of cutPlanes) {
+      poly = clipPolyByPlane(poly, pl);
+      if (poly.length < 3) break;
+    }
+    if (poly.length < 3) continue;
+    const pts = [];
+    let avgZ = 0;
+    for (const v of poly) {
+      const t = txFn(v);
+      const p = project(t, w, h);
+      pts.push({ x: p.x, y: p.y });
+      avgZ += t.z;
+    }
+    avgZ /= poly.length;
+    const lambert = Math.max(0, N[0]*LIGHT_DIR[0] + N[1]*LIGHT_DIR[1] + N[2]*LIGHT_DIR[2]);
+    const intensity = 0.40 + 1.00 * lambert;
+    polys.push({ pts, z: avgZ, color: shadeColor(color, intensity) });
+  }
+
+  // 2. Cap surfaces (flat disc where each plane cuts the sphere)
+  for (const plane of cutPlanes) {
+    const dist = atomPos[0]*plane.n[0] + atomPos[1]*plane.n[1] + atomPos[2]*plane.n[2] - plane.d;
+    if (Math.abs(dist) >= r) continue;
+    const cx = atomPos[0] - dist * plane.n[0];
+    const cy = atomPos[1] - dist * plane.n[1];
+    const cz = atomPos[2] - dist * plane.n[2];
+    const cR = Math.sqrt(r*r - dist*dist);
+    if (cR < 1e-4) continue;
+
+    let u;
+    if (Math.abs(plane.n[2]) < 0.9) u = [-plane.n[1], plane.n[0], 0];
+    else                            u = [0, -plane.n[2], plane.n[1]];
+    const uL = Math.hypot(u[0], u[1], u[2]) || 1;
+    u = [u[0]/uL, u[1]/uL, u[2]/uL];
+    const vv = [
+      plane.n[1]*u[2] - plane.n[2]*u[1],
+      plane.n[2]*u[0] - plane.n[0]*u[2],
+      plane.n[0]*u[1] - plane.n[1]*u[0],
+    ];
+
+    const N = 36;
+    let cap = new Array(N);
+    for (let i = 0; i < N; i++) {
+      const th = 2 * Math.PI * i / N;
+      const c = Math.cos(th), s = Math.sin(th);
+      cap[i] = [
+        cx + cR*(c*u[0] + s*vv[0]),
+        cy + cR*(c*u[1] + s*vv[1]),
+        cz + cR*(c*u[2] + s*vv[2]),
+      ];
+    }
+    for (const otherP of cutPlanes) {
+      if (otherP === plane) continue;
+      cap = clipPolyByPlane(cap, otherP);
+      if (cap.length < 3) break;
+    }
+    if (cap.length < 3) continue;
+
+    const pts = [];
+    let avgZ = 0;
+    for (const v of cap) {
+      const t = txFn(v);
+      const p = project(t, w, h);
+      pts.push({ x: p.x, y: p.y });
+      avgZ += t.z;
+    }
+    avgZ /= cap.length;
+    const cnx = -plane.n[0], cny = -plane.n[1], cnz = -plane.n[2];
+    const lambert = Math.max(0, cnx*LIGHT_DIR[0] + cny*LIGHT_DIR[1] + cnz*LIGHT_DIR[2]);
+    const intensity = 0.45 + 0.65 * lambert;
+    polys.push({ pts, z: avgZ, color: shadeColor(color, intensity * 0.78) });
+  }
+
+  polys.sort((a, b) => a.z - b.z);
+  for (const p of polys) {
+    ctx.beginPath();
+    ctx.moveTo(p.pts[0].x, p.pts[0].y);
+    for (let i = 1; i < p.pts.length; i++) ctx.lineTo(p.pts[i].x, p.pts[i].y);
+    ctx.closePath();
+    ctx.fillStyle = p.color;
+    ctx.fill();
+  }
+}
+
 function draw(){
   const w = canvas.width, h = canvas.height;
   ctx.clearRect(0,0,w,h);
   const S = STRUCTURES[current];
-  const center = vec(S.center[0], S.center[1], S.center[2]);
+  // HCP cropped view compresses the cell vertically so the middle atoms touch
+  // the top/bottom face atoms. We scale every HCP z-coordinate (positions,
+  // edges, tetra, atom centres) by the same factor so the visual stays
+  // self-consistent. Sphere radii are NOT scaled — atoms remain round.
+  const zk = (showCropped && current === 'hcp') ? HCP_CROPPED_Z : 1;
+  function sz(p) { return zk === 1 ? p : [p[0], p[1], p[2] * zk]; }
+
+  const center = vec(S.center[0], S.center[1], S.center[2] * zk);
   function tx(p){
     return transform({x:p[0]-center.x, y:p[1]-center.y, z:p[2]-center.z});
   }
@@ -866,29 +1083,30 @@ function draw(){
 
   if(showCell){
     for(const e of S.edges){
-      const a = tx(e[0]), b = tx(e[1]);
+      const a = tx(sz(e[0])), b = tx(sz(e[1]));
       items.push({z:(a.z+b.z)/2, kind:'edge', a, b, color:S.edgeColor, width:1.4});
     }
   }
   if(showCPD){
     const opt = CPD[current][cpdIndex];
-    const a = tx(opt.line[0]), b = tx(opt.line[1]);
+    const a = tx(sz(opt.line[0])), b = tx(sz(opt.line[1]));
     items.push({z:(a.z+b.z)/2 + 0.001, kind:'cpd', a, b});
   }
   if(showTetra && current === 'hcp'){
     for(const e of HCP_TETRA.edges){
-      const a = tx(e[0]), b = tx(e[1]);
+      const a = tx(sz(e[0])), b = tx(sz(e[1]));
       items.push({z:(a.z+b.z)/2 + 0.0005, kind:'tetra', a, b});
     }
-    const c1 = tx(HCP_TETRA.centroid);
-    const c2 = tx(HCP_TETRA.verts[3]);
+    const c1 = tx(sz(HCP_TETRA.centroid));
+    const c2 = tx(sz(HCP_TETRA.verts[3]));
     items.push({z:(c1.z+c2.z)/2 + 0.0005, kind:'tetraDash', a:c1, b:c2});
   }
   const rFull = S.r_over_a;
   const rDraw = rFull * atomScale;
   const accLabel = ACCENT_LABEL[current];
   for(const at of S.atoms){
-    const tp = tx(at.pos);
+    const pos = sz(at.pos);
+    const tp = tx(pos);
     const color = S.labelColors
       ? (S.labelColors[at.label] ?? S.atomColor)
       : (accLabel && at.label === accLabel) ? S.accentColor : S.atomColor;
@@ -896,7 +1114,7 @@ function draw(){
     if(showTetra && current === 'hcp'){
       for(const v of HCP_TETRA.verts) if(sameVec(v, at.pos)) { onTetra = true; break; }
     }
-    items.push({z: tp.z, kind:'atom', tp, r:rDraw, color, ring: onTetra ? '#1697c4' : null});
+    items.push({z: tp.z, kind:'atom', pos, label: at.label, tp, r:rDraw, color, ring: onTetra ? '#1697c4' : null});
   }
   items.sort((u,v) => u.z - v.z);
 
@@ -937,9 +1155,37 @@ function draw(){
       ctx.textAlign = 'left';
       ctx.fillText('c/2', (A.x+B.x)/2 + 6*DPR, (A.y+B.y)/2);
     } else if(it.kind === 'atom'){
-      const A = project(it.tp, w, h);
-      const rad = it.r * A.s;
-      drawSphere(A.x, A.y, rad, it.color, it.ring);
+      // Always render through the same mesh-based path so cropped and
+      // non-cropped atoms share Lambertian shading (no gradient/matte mix).
+      let renderPos = it.pos;
+      let renderR   = it.r;
+      let renderPlanes = [];   // empty = no clipping
+      if (showCropped) {
+        if (current === 'hcp' && it.label === 'middle') {
+          // Three middle atoms repositioned inward so they touch each other
+          // AND just touch the hex walls (no clip needed → empty planes).
+          const angle = Math.atan2(it.pos[1], it.pos[0]);
+          renderPos = [
+            HCP_MIDDLE_COMPACT_D * Math.cos(angle),
+            HCP_MIDDLE_COMPACT_D * Math.sin(angle),
+            it.pos[2],
+          ];
+          renderR = Math.min(it.r, HCP_MIDDLE_COMPACT_R);
+        } else {
+          renderPlanes = getCellPlanes();
+        }
+      }
+      renderClippedAtomMesh(renderPos, renderR, it.color, renderPlanes, w, h, tx);
+
+      // Tetra highlight — ring outline drawn on top of the mesh.
+      if (it.ring) {
+        const A = project(tx(renderPos), w, h);
+        ctx.strokeStyle = it.ring;
+        ctx.lineWidth = 2.4 * DPR;
+        ctx.beginPath();
+        ctx.arc(A.x, A.y, renderR * A.s + 1.5 * DPR, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
   }
   drawAxes(w, h);
@@ -1192,6 +1438,7 @@ slider.addEventListener('input', () => {
 });
 document.getElementById('showCPD').addEventListener('change', e => { showCPD = e.target.checked; draw(); });
 document.getElementById('showCell').addEventListener('change', e => { showCell = e.target.checked; draw(); });
+document.getElementById('showCropped').addEventListener('change', e => { showCropped = e.target.checked; draw(); });
 document.getElementById('showTetra').addEventListener('change', e => {
   showTetra = e.target.checked;
   document.body.classList.toggle('tetra-on', showTetra);

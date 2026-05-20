@@ -504,6 +504,8 @@
           <span class="stat-lbl">Drag · Step · Solve</span>
         </div>
       </div>
+      <div class="divider"></div>
+      <div id="accountWidget"></div>
     </div>
   </header>
 
@@ -920,6 +922,12 @@
     </form>
   </div>
 </div>
+
+<script src="auth.js"></script>
+<script>
+  // Render the account widget in the header on every load.
+  AuthMock.renderAccountWidget('accountWidget');
+</script>
 
 <script>
 (function () {

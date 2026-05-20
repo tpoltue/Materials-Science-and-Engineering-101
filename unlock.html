@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Unlock Pro — Materials Science 101</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fafafa;
+    --ink: #1a1a1a;
+    --ink-soft: #666;
+    --line: rgba(26,26,26,0.10);
+    --line-strong: rgba(26,26,26,0.18);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "IBM Plex Sans Thai Looped", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300; color: var(--ink); background: var(--bg);
+    line-height: 1.5; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 18px;
+    max-width: 480px; width: 100%;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.15);
+    overflow: hidden;
+  }
+  .card-body { padding: 32px 32px 26px; }
+  .eyebrow {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 6px;
+  }
+  h1 {
+    font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; font-size: 22px;
+    margin-bottom: 8px; line-height: 1.1;
+  }
+  .subtitle {
+    color: var(--ink-soft); font-size: 13.5px;
+    margin-bottom: 22px; line-height: 1.5;
+  }
+
+  .price-block {
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 18px 18px 16px;
+    margin-bottom: 20px;
+  }
+  .price-label {
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 6px;
+  }
+  .price { font-size: 32px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+  .price-note { font-size: 12px; color: var(--ink-soft); }
+
+  .perks {
+    list-style: none; padding: 0;
+    margin: 0 0 22px;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+  }
+  .perks li {
+    font-size: 13px; color: var(--ink);
+    padding: 5px 0 5px 24px;
+    position: relative;
+  }
+  .perks li::before {
+    content: "✓"; position: absolute; left: 0;
+    color: #2a6a32; font-weight: 700;
+  }
+
+  /* Steps list */
+  .steps {
+    list-style: none; padding: 0;
+    margin: 0 0 18px;
+    counter-reset: stepcount;
+  }
+  .step {
+    position: relative;
+    padding: 14px 14px 14px 50px;
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    counter-increment: stepcount;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .step::before {
+    content: counter(stepcount);
+    position: absolute;
+    top: 14px; left: 14px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--ink); color: #fff;
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .step strong { font-weight: 700; }
+
+  /* PromptPay QR */
+  .qr-block {
+    text-align: center;
+    margin: 8px 0 10px;
+  }
+  .qr-placeholder {
+    width: 130px; height: 130px; margin: 0 auto;
+    background:
+      repeating-conic-gradient(#1a1a1a 0 25%, #fff 0 50%) 0 0/13px 13px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+  }
+  .qr-num {
+    margin-top: 8px; font-size: 14px; font-weight: 700;
+    font-family: "IBM Plex Mono", monospace;
+    letter-spacing: 1px;
+  }
+
+  /* Account info block (uid for the form) */
+  .account-info {
+    background: #f0f4f8;
+    border: 1px solid #c5d4e0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+  .account-info-row { display: flex; justify-content: space-between; gap: 10px; }
+  .account-info-row + .account-info-row { margin-top: 4px; }
+  .account-info code {
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 11.5px;
+    background: #fff;
+    padding: 1px 5px;
+    border-radius: 4px;
+    border: 1px solid var(--line);
+    user-select: all;
+  }
+
+  .btn {
+    border: none; padding: 12px 20px; border-radius: 10px;
+    font: inherit; font-size: 12.5px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; width: 100%;
+    transition: background 0.15s;
+    font-family: inherit;
+    text-decoration: none;
+    text-align: center;
+    display: block;
+  }
+  .btn-primary {
+    background: var(--ink); color: #fff;
+  }
+  .btn-primary:hover { background: #2a2a2c; }
+  .btn-secondary {
+    background: #fff; color: var(--ink);
+    border: 1px solid var(--line-strong);
+    margin-top: 8px;
+  }
+  .btn-secondary:hover { background: #f4f4f4; }
+
+  .footer-row {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-top: 14px;
+    font-size: 11.5px; color: var(--ink-soft);
+  }
+  .back-link {
+    color: var(--ink-soft); text-decoration: none;
+  }
+  .back-link:hover { color: var(--ink); text-decoration: underline; }
+
+  .pending-note {
+    margin: 18px 0 0; padding: 10px 12px;
+    background: #fffbe6; border: 1px solid #d9c560;
+    border-radius: 8px;
+    font-size: 11.5px; color: #6b5800;
+    line-height: 1.45;
+  }
+  .pending-note strong { font-weight: 700; }
+
+  .loading {
+    text-align: center;
+    padding: 40px 28px;
+    color: var(--ink-soft);
+    font-size: 13px;
+  }
+
+  /* Already-pro state */
+  .pro-state {
+    text-align: center; padding: 40px 28px;
+  }
+  .pro-state .check {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: #1a7a3a; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 32px; font-weight: 700;
+    margin-bottom: 18px;
+    box-shadow: 0 0 0 8px rgba(26,122,58,0.15);
+  }
+  .pro-state h2 {
+    font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .pro-state p {
+    color: var(--ink-soft); font-size: 13.5px;
+    margin-bottom: 18px;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-body" id="cardBody">
+    <div class="loading">Loading…</div>
+  </div>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const returnUrl = params.get('return') || 'index.html';
+    const cardBody = document.getElementById('cardBody');
+
+    // ─── Configuration — beta-launch values ───────────────────────
+    const PROMPTPAY_NUMBER = '093-456-4616';
+    const RECEIPT_EMAIL    = 'tpoltue@gmail.com';
+    const PRICE_THB        = '฿199';
+
+    function render(user, isPro) {
+      if (isPro) {
+        cardBody.innerHTML = `
+          <div class="pro-state">
+            <div class="check">✓</div>
+            <h2>You're already Pro</h2>
+            <p>All gated features are unlocked on your account.</p>
+            <a href="${returnUrl}" class="btn btn-primary">Back to tutorial</a>
+          </div>
+        `;
+        return;
+      }
+
+      // Pre-fill an email draft with the student's Account ID + email
+      // so they just have to attach the receipt and hit send.
+      const subject = encodeURIComponent('Pro upgrade — Materials Science 101');
+      const bodyText =
+        'Hi Mark,\n\n' +
+        'I just sent ' + PRICE_THB + ' via PromptPay to ' + PROMPTPAY_NUMBER + '.\n' +
+        'Please upgrade my account to Pro.\n\n' +
+        'Account ID: ' + (user.uid || '') + '\n' +
+        'Email: ' + (user.email || '') + '\n\n' +
+        '(Receipt screenshot attached.)\n';
+      const mailto = 'mailto:' + RECEIPT_EMAIL +
+                     '?subject=' + subject +
+                     '&body=' + encodeURIComponent(bodyText);
+      const formLink = '<a href="' + mailto + '" class="btn btn-primary">Email receipt to ' + RECEIPT_EMAIL + '</a>';
+
+      cardBody.innerHTML = `
+        <div class="eyebrow">Materials Science 101</div>
+        <h1>Unlock Pro</h1>
+        <p class="subtitle">One-time payment. Lifetime access to all gated visualizers, derivations, and exact numeric values across every chapter.</p>
+
+        <div class="price-block">
+          <div class="price-label">Total</div>
+          <div class="price">${PRICE_THB}.00</div>
+          <div class="price-note">One-time · No recurring charges</div>
+        </div>
+
+        <ul class="perks">
+          <li>Ch.3 — Atomic packing derivations + HCP c/a math</li>
+          <li>Ch.4 — Screw dislocation animations + Burgers visualization</li>
+          <li>Ch.6 — Tensile test animation with material specimens</li>
+          <li>Ch.8 — Paris-law crack growth animation</li>
+          <li>Ch.9 — Microstructure + exact lever-rule percentages + Fe–C zooms</li>
+          <li>Ch.10 — TTT/CCT microstructure + 4-point heat-treatment paths</li>
+        </ul>
+
+        <div class="account-info">
+          <div class="account-info-row">
+            <span style="color:#666;">Your account</span>
+            <code id="acctEmail">—</code>
+          </div>
+          <div class="account-info-row">
+            <span style="color:#666;">Account ID</span>
+            <code id="acctUid">—</code>
+          </div>
+        </div>
+
+        <ol class="steps">
+          <li class="step">
+            <strong>Transfer ${PRICE_THB}</strong> via PromptPay to:
+            <div class="qr-block">
+              <div class="qr-placeholder" aria-label="PromptPay QR placeholder"></div>
+              <div class="qr-num">${PROMPTPAY_NUMBER}</div>
+            </div>
+          </li>
+          <li class="step">
+            <strong>Screenshot</strong> the payment confirmation from your banking app.
+          </li>
+          <li class="step">
+            <strong>Email the receipt</strong> to <code>${RECEIPT_EMAIL}</code> using the button below — your <em>Account ID</em> is pre-filled for you. Just attach the screenshot and hit send.
+          </li>
+          <li class="step">
+            Your account will be upgraded to Pro within <strong>24 hours</strong>. Refresh the page or sign back in to see the change.
+          </li>
+        </ol>
+
+        ${formLink}
+        <a href="${returnUrl}" class="btn btn-secondary">Back to tutorial</a>
+
+        <div class="footer-row">
+          <span>Stripe automatic payment coming soon · Powered by Firebase</span>
+        </div>
+
+        <div class="pending-note">
+          <strong>Beta:</strong> While our Stripe Thailand account is being verified, upgrades are processed manually. We'll switch to instant payment in the next release.
+        </div>
+      `;
+
+      document.getElementById('acctEmail').textContent = user.email || '—';
+      document.getElementById('acctUid').textContent   = user.uid;
+    }
+
+    // Wait for Firebase to resolve auth state, then render the right view.
+    AuthMock.onAuthReady(() => {
+      const user = AuthMock.getCurrentUser();
+      if (!user) {
+        window.location.href = 'login.html?return=' + encodeURIComponent(window.location.href);
+        return;
+      }
+      render(user, AuthMock.isProUser());
+    });
+  })();
+</script>
+
+</body>
+</html>

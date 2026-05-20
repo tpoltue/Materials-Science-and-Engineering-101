@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign in — Materials Science 101</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #fafafa;
+    --ink: #1a1a1a;
+    --ink-soft: #666;
+    --line: rgba(26,26,26,0.10);
+    --line-strong: rgba(26,26,26,0.18);
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "IBM Plex Sans Thai Looped", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 300; color: var(--ink); background: var(--bg);
+    line-height: 1.5; min-height: 100vh;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .card {
+    background: #fff; border: 1px solid var(--line);
+    border-radius: 18px; padding: 36px 32px 28px;
+    max-width: 420px; width: 100%;
+    box-shadow: 0 20px 50px -20px rgba(0,0,0,0.15);
+  }
+  .eyebrow {
+    font-size: 10.5px; font-weight: 700;
+    letter-spacing: 1.8px; text-transform: uppercase;
+    color: var(--ink-soft); margin-bottom: 6px;
+  }
+  h1 {
+    font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; font-size: 24px;
+    margin-bottom: 8px; line-height: 1.1;
+  }
+  .subtitle {
+    color: var(--ink-soft); font-size: 13.5px;
+    margin-bottom: 26px; line-height: 1.5;
+  }
+  .field { margin-bottom: 14px; }
+  .field label {
+    display: block; font-size: 11px; font-weight: 700;
+    letter-spacing: 1.4px; text-transform: uppercase;
+    color: var(--ink); margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%; border: 1px solid var(--line-strong);
+    border-radius: 10px; padding: 11px 13px;
+    font: inherit; font-size: 13.5px;
+    color: var(--ink); background: #fafafa;
+    transition: border-color 0.15s, background 0.15s;
+    font-family: inherit;
+  }
+  .field input:focus {
+    outline: none; border-color: var(--ink); background: #fff;
+  }
+  .btn {
+    border: none; padding: 11px 20px; border-radius: 10px;
+    font: inherit; font-size: 12.5px; font-weight: 700;
+    letter-spacing: 1px; text-transform: uppercase;
+    cursor: pointer; width: 100%;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    font-family: inherit;
+  }
+  .btn-primary {
+    background: var(--ink); color: #fff; margin-bottom: 10px;
+  }
+  .btn-primary:hover { background: #2a2a2c; }
+  .btn-google {
+    background: #fff; color: var(--ink);
+    border: 1px solid var(--line-strong);
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    margin-bottom: 16px;
+  }
+  .btn-google:hover { background: #f4f4f4; border-color: var(--ink); }
+  .divider {
+    display: flex; align-items: center; gap: 10px;
+    margin: 18px 0;
+    color: var(--ink-soft); font-size: 11px;
+    letter-spacing: 1.2px; text-transform: uppercase;
+  }
+  .divider::before,
+  .divider::after {
+    content: ""; flex: 1; height: 1px;
+    background: var(--line);
+  }
+  .mock-note {
+    margin-top: 18px; padding: 10px 12px;
+    background: #fffbe6; border: 1px solid #d9c560;
+    border-radius: 8px;
+    font-size: 11.5px; color: #6b5800;
+    line-height: 1.45;
+  }
+  .mock-note strong { font-weight: 700; }
+  .back-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    align-self: flex-start;
+    margin-bottom: 18px;
+    font-size: 12.5px; font-weight: 500; color: var(--ink-soft);
+    text-decoration: none;
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 14px 6px 11px;
+    line-height: 1;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+  }
+  .back-link:hover {
+    background: #fff; color: var(--ink); border-color: var(--line-strong);
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <a href="index.html" id="backLink" class="back-link">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4L6 8l4 4"/></svg>
+    Back to tutorials
+  </a>
+  <div class="eyebrow">Materials Science 101</div>
+  <h1>Sign in</h1>
+  <p class="subtitle">Sign in to unlock pro visualizers, save your progress, and pick up where you left off.</p>
+
+  <button type="button" class="btn btn-google" id="googleBtn">
+    <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
+      <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.49h4.84c-.21 1.12-.84 2.07-1.79 2.71v2.26h2.9c1.7-1.56 2.69-3.87 2.69-6.62z"/>
+      <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.81.54-1.84.86-3.06.86-2.35 0-4.34-1.59-5.06-3.72H.96v2.33A9 9 0 0 0 9 18z"/>
+      <path fill="#FBBC05" d="M3.94 10.7a5.4 5.4 0 0 1 0-3.4V4.97H.96a9 9 0 0 0 0 8.06l2.98-2.33z"/>
+      <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A9 9 0 0 0 .96 4.97L3.94 7.3C4.66 5.17 6.65 3.58 9 3.58z"/>
+    </svg>
+    Continue with Google
+  </button>
+
+  <div class="divider">or</div>
+
+  <form id="loginForm">
+    <div class="field">
+      <label for="email">Email</label>
+      <input type="email" id="email" name="email" required placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label for="password">Password <span style="color:#999;font-weight:400;letter-spacing:0;text-transform:none;font-size:10px;">(min 6 characters — auto-creates account if new)</span></label>
+      <input type="password" id="password" name="password" required minlength="6" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <div id="loginError" style="color:#a02020;font-size:12px;min-height:18px;margin-bottom:8px;"></div>
+    <button type="submit" class="btn btn-primary" id="emailSubmit">Sign in with Email</button>
+  </form>
+</div>
+
+<script src="auth.js"></script>
+<script>
+  (function () {
+    const params = new URLSearchParams(window.location.search);
+    const returnUrl = params.get('return') || 'index.html';
+
+    document.getElementById('backLink').href = returnUrl;
+
+    const errorEl = document.getElementById('loginError');
+    const emailSubmitBtn = document.getElementById('emailSubmit');
+    const googleBtn = document.getElementById('googleBtn');
+
+    function setError(msg) { errorEl.textContent = msg || ''; }
+    function setBusy(busy) {
+      emailSubmitBtn.disabled = busy;
+      googleBtn.disabled = busy;
+      emailSubmitBtn.textContent = busy ? 'Signing in…' : 'Sign in with Email';
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      setError(''); setBusy(true);
+      try {
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        await AuthMock.signIn(email, password);
+        window.location.href = returnUrl;
+      } catch (err) {
+        setError(friendlyAuthError(err));
+        setBusy(false);
+      }
+    });
+
+    googleBtn.addEventListener('click', async () => {
+      setError(''); setBusy(true);
+      try {
+        await AuthMock.signInWithGoogle();
+        window.location.href = returnUrl;
+      } catch (err) {
+        setError(friendlyAuthError(err));
+        setBusy(false);
+      }
+    });
+
+    function friendlyAuthError(err) {
+      const code = (err && err.code) || '';
+      switch (code) {
+        case 'auth/popup-closed-by-user':
+        case 'auth/cancelled-popup-request':
+          return ''; // user dismissed — no need to nag
+        case 'auth/invalid-email':         return 'That email address isn’t valid.';
+        case 'auth/wrong-password':        return 'Wrong password for that account.';
+        case 'auth/weak-password':         return 'Password must be at least 6 characters.';
+        case 'auth/email-already-in-use':  return 'That email is already registered — check your password.';
+        case 'auth/network-request-failed':return 'Network error — check your connection and try again.';
+        default: return (err && err.message) || 'Sign-in failed. Please try again.';
+      }
+    }
+  })();
+</script>
+
+</body>
+</html>
