@@ -30,10 +30,12 @@
   };
 
   const FIREBASE_VERSION = '10.13.0';
+  const FUNCTIONS_REGION = 'asia-southeast1';
   const FIREBASE_SCRIPTS = [
     `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-app-compat.js`,
     `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth-compat.js`,
     `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore-compat.js`,
+    `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-functions-compat.js`,
   ];
 
   // Local cache of auth + entitlement state. Updated when Firebase
@@ -406,16 +408,61 @@
     }
   }
 
-  // Pro unlock — DEFERRED until Stripe is wired.
-  // Until then, the unlock.html page shows manual-grant instructions and
-  // Mark flips /users/{uid}.pro = true in the Firestore console after
-  // verifying the PromptPay receipt. The Firestore security rules block
-  // any client from writing the pro flag, so this function intentionally
-  // does nothing payment-related.
+  // Pro unlock — handled by Stripe Checkout via Cloud Function. The
+  // unlock.html page calls createCheckoutSession() below, redirects the
+  // user to Stripe, and the stripeWebhook Cloud Function flips
+  // /users/{uid}.pro = true via Admin SDK once payment succeeds.
   async function unlockPro() {
     throw new Error(
-      'Automatic unlock is not yet enabled. Follow the instructions on the unlock page to upgrade.'
+      'Use AuthMock.createCheckoutSession() — direct unlockPro() is not supported.'
     );
+  }
+
+  // Calls the createCheckoutSession Cloud Function. Returns the Stripe
+  // Checkout session URL; caller redirects to it.
+  //
+  // Accepts either a single returnUrl string OR an options object:
+  //   { returnUrl, successUrl?, cancelUrl? }
+  async function createCheckoutSession(opts) {
+    if (typeof firebase === 'undefined' || !firebase.functions) {
+      throw new Error('Firebase Functions not loaded yet.');
+    }
+    if (!cachedUser) {
+      throw new Error('Must be signed in to upgrade.');
+    }
+    // Normalize: string → { returnUrl }; object stays as-is.
+    if (typeof opts === 'string') opts = { returnUrl: opts };
+    opts = opts || {};
+
+    const payload = {
+      returnUrl: opts.returnUrl || window.location.origin
+    };
+    if (opts.successUrl) payload.successUrl = opts.successUrl;
+    if (opts.cancelUrl)  payload.cancelUrl  = opts.cancelUrl;
+
+    const fns = firebase.app().functions(FUNCTIONS_REGION);
+    const callable = fns.httpsCallable('createCheckoutSession');
+    const result = await callable(payload);
+    return result.data;  // { url, sessionId }
+  }
+
+  // Re-fetch the Firestore /users/{uid} doc and update cachedPro. Used
+  // by unlock.html to detect when the webhook has fired after payment.
+  async function refreshProState() {
+    if (typeof firebase === 'undefined' || !firebase.firestore) return false;
+    const user = firebase.auth().currentUser;
+    if (!user) {
+      cachedPro = false;
+    } else {
+      try {
+        const snap = await firebase.firestore().collection('users').doc(user.uid).get();
+        cachedPro = snap.exists ? !!snap.data().pro : false;
+      } catch (e) {
+        console.error('refreshProState: read failed', e);
+      }
+    }
+    if (document.body) document.body.classList.toggle('pro-user', cachedPro);
+    return cachedPro;
   }
 
   /* ─── navigation guards ─────────────────────────────────────── */
@@ -806,6 +853,8 @@
     signInWithGoogle,
     signOut,
     unlockPro,
+    createCheckoutSession,
+    refreshProState,
     requireAuth,
     requirePro,
     renderAccountWidget,

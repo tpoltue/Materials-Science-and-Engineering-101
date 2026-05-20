@@ -231,32 +231,54 @@
   (function () {
     const params = new URLSearchParams(window.location.search);
     const returnUrl = params.get('return') || 'index.html';
+    const proSuccess = params.get('pro') === 'success';
+    const proCancel  = params.get('pro') === 'cancel';
     const cardBody = document.getElementById('cardBody');
 
-    // ─── Configuration — beta-launch values ───────────────────────
+    // ─── Manual PromptPay fallback (only used if Stripe is unavailable) ─
     const PROMPTPAY_NUMBER = '093-456-4616';
     const RECEIPT_EMAIL    = 'tpoltue@gmail.com';
     const PRICE_THB        = '฿199';
 
-    function render(user, isPro) {
-      if (isPro) {
-        cardBody.innerHTML = `
-          <div class="pro-state">
-            <div class="check">✓</div>
-            <h2>You're already Pro</h2>
-            <p>All gated features are unlocked on your account.</p>
-            <a href="${returnUrl}" class="btn btn-primary">Back to tutorial</a>
-          </div>
-        `;
-        return;
-      }
+    /* ─── Renderers ─────────────────────────────────────────────── */
 
-      // Pre-fill an email draft with the student's Account ID + email
-      // so they just have to attach the receipt and hit send.
-      const subject = encodeURIComponent('Pro upgrade — Materials Science 101');
+    function renderPro() {
+      cardBody.innerHTML = `
+        <div class="pro-state">
+          <div class="check">✓</div>
+          <h2>You're Pro</h2>
+          <p>All gated features are unlocked on your account.</p>
+          <a href="${returnUrl}" class="btn btn-primary">Back to tutorial</a>
+        </div>
+      `;
+    }
+
+    function renderVerifying(secondsLeft) {
+      cardBody.innerHTML = `
+        <div class="pro-state">
+          <div class="check" style="background:#cc7a00;box-shadow:0 0 0 8px rgba(204,122,0,0.15);">⟳</div>
+          <h2>Verifying payment…</h2>
+          <p>Your payment was received. Activating Pro on your account.<br><span style="font-size:11px;color:#999">(usually 1–3 seconds${typeof secondsLeft === 'number' ? ' · ' + secondsLeft + 's' : ''})</span></p>
+        </div>
+      `;
+    }
+
+    function renderTimeout() {
+      cardBody.innerHTML = `
+        <div class="pro-state">
+          <div class="check" style="background:#a02020;box-shadow:0 0 0 8px rgba(160,32,32,0.15);">!</div>
+          <h2>Still processing</h2>
+          <p>Your payment is taking longer than usual to confirm.<br>Refresh in a minute, or contact <a href="mailto:${RECEIPT_EMAIL}">${RECEIPT_EMAIL}</a> if it doesn't activate.</p>
+          <button type="button" class="btn btn-primary" onclick="window.location.reload()">Refresh</button>
+        </div>
+      `;
+    }
+
+    function renderUpgrade(user) {
+      const subject = encodeURIComponent('Pro upgrade (manual) — Materials Science 101');
       const bodyText =
         'Hi Mark,\n\n' +
-        'I just sent ' + PRICE_THB + ' via PromptPay to ' + PROMPTPAY_NUMBER + '.\n' +
+        'I paid ' + PRICE_THB + ' via PromptPay to ' + PROMPTPAY_NUMBER + ' (Stripe wasn\'t working).\n' +
         'Please upgrade my account to Pro.\n\n' +
         'Account ID: ' + (user.uid || '') + '\n' +
         'Email: ' + (user.email || '') + '\n\n' +
@@ -264,12 +286,11 @@
       const mailto = 'mailto:' + RECEIPT_EMAIL +
                      '?subject=' + subject +
                      '&body=' + encodeURIComponent(bodyText);
-      const formLink = '<a href="' + mailto + '" class="btn btn-primary">Email receipt to ' + RECEIPT_EMAIL + '</a>';
 
       cardBody.innerHTML = `
         <div class="eyebrow">Materials Science 101</div>
         <h1>Unlock Pro</h1>
-        <p class="subtitle">One-time payment. Lifetime access to all gated visualizers, derivations, and exact numeric values across every chapter.</p>
+        <p class="subtitle">One-time payment. Lifetime access to gated visualizers, derivations, and exact numeric values across every chapter.</p>
 
         <div class="price-block">
           <div class="price-label">Total</div>
@@ -289,57 +310,97 @@
         <div class="account-info">
           <div class="account-info-row">
             <span style="color:#666;">Your account</span>
-            <code id="acctEmail">—</code>
+            <code>${user.email || '—'}</code>
           </div>
           <div class="account-info-row">
             <span style="color:#666;">Account ID</span>
-            <code id="acctUid">—</code>
+            <code>${user.uid}</code>
           </div>
         </div>
 
-        <ol class="steps">
-          <li class="step">
-            <strong>Transfer ${PRICE_THB}</strong> via PromptPay to:
-            <div class="qr-block">
-              <div class="qr-placeholder" aria-label="PromptPay QR placeholder"></div>
-              <div class="qr-num">${PROMPTPAY_NUMBER}</div>
-            </div>
-          </li>
-          <li class="step">
-            <strong>Screenshot</strong> the payment confirmation from your banking app.
-          </li>
-          <li class="step">
-            <strong>Email the receipt</strong> to <code>${RECEIPT_EMAIL}</code> using the button below — your <em>Account ID</em> is pre-filled for you. Just attach the screenshot and hit send.
-          </li>
-          <li class="step">
-            Your account will be upgraded to Pro within <strong>24 hours</strong>. Refresh the page or sign back in to see the change.
-          </li>
-        </ol>
+        ${proCancel ? '<div class="pending-note" style="margin-bottom:14px"><strong>Payment cancelled.</strong> No charge was made. Try again whenever you\'re ready.</div>' : ''}
 
-        ${formLink}
+        <button type="button" class="btn btn-primary" id="payBtn">Pay ${PRICE_THB} with Stripe</button>
+        <div id="stripeError" style="color:#a02020;font-size:12px;min-height:18px;margin:6px 0 0;"></div>
+
         <a href="${returnUrl}" class="btn btn-secondary">Back to tutorial</a>
 
-        <div class="footer-row">
-          <span>Stripe automatic payment coming soon · Powered by Firebase</span>
-        </div>
-
-        <div class="pending-note">
-          <strong>Beta:</strong> While our Stripe Thailand account is being verified, upgrades are processed manually. We'll switch to instant payment in the next release.
-        </div>
+        <details style="margin-top:18px;font-size:12px;color:#666;">
+          <summary style="cursor:pointer;">Trouble paying? Try the manual PromptPay flow</summary>
+          <div style="margin-top:10px;line-height:1.55;">
+            Transfer ${PRICE_THB} via PromptPay to <strong>${PROMPTPAY_NUMBER}</strong>,
+            screenshot the receipt, then
+            <a href="${mailto}">email us</a> with your Account ID and we'll activate within 24 hours.
+          </div>
+        </details>
       `;
 
-      document.getElementById('acctEmail').textContent = user.email || '—';
-      document.getElementById('acctUid').textContent   = user.uid;
+      document.getElementById('payBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('payBtn');
+        const errEl = document.getElementById('stripeError');
+        btn.disabled = true;
+        btn.textContent = 'Redirecting to Stripe…';
+        errEl.textContent = '';
+        try {
+          const successUrl = window.location.origin + window.location.pathname +
+            '?pro=success&return=' + encodeURIComponent(returnUrl);
+          const cancelUrl  = window.location.origin + window.location.pathname +
+            '?pro=cancel&return=' + encodeURIComponent(returnUrl);
+          const { url } = await AuthMock.createCheckoutSession({
+            returnUrl: returnUrl,
+            successUrl: successUrl,
+            cancelUrl: cancelUrl
+          });
+          window.location.href = url;
+        } catch (err) {
+          console.error(err);
+          errEl.textContent = (err && err.message) || 'Failed to start Stripe Checkout. Try the manual flow.';
+          btn.disabled = false;
+          btn.textContent = `Pay ${PRICE_THB} with Stripe`;
+        }
+      });
     }
 
-    // Wait for Firebase to resolve auth state, then render the right view.
+    /* ─── Polling after Stripe success redirect ────────────────── */
+
+    async function pollForPro(user) {
+      const maxSeconds = 30;
+      const intervalMs = 2000;
+      let elapsed = 0;
+      renderVerifying(maxSeconds);
+      while (elapsed < maxSeconds * 1000) {
+        const isPro = await AuthMock.refreshProState();
+        if (isPro) {
+          renderPro();
+          // Auto-bounce back to tutorial after 1.5 s.
+          setTimeout(() => { window.location.href = returnUrl; }, 1500);
+          return;
+        }
+        await new Promise(r => setTimeout(r, intervalMs));
+        elapsed += intervalMs;
+        const left = Math.max(0, maxSeconds - Math.floor(elapsed / 1000));
+        renderVerifying(left);
+      }
+      renderTimeout();
+    }
+
+    /* ─── Entry point ───────────────────────────────────────────── */
+
     AuthMock.onAuthReady(() => {
       const user = AuthMock.getCurrentUser();
       if (!user) {
         window.location.href = 'login.html?return=' + encodeURIComponent(window.location.href);
         return;
       }
-      render(user, AuthMock.isProUser());
+      if (AuthMock.isProUser()) {
+        renderPro();
+        return;
+      }
+      if (proSuccess) {
+        pollForPro(user);
+        return;
+      }
+      renderUpgrade(user);
     });
   })();
 </script>
