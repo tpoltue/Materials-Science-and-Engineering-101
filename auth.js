@@ -47,6 +47,45 @@
   let firebaseReady = false;
   const onReadyCallbacks = [];
 
+  // Display hint persisted in localStorage so the header (and body
+  // .pro-user class) can render the last-known identity *synchronously*
+  // on each new page load, before the async Firebase SDK has finished
+  // loading. Without this, navigating between chapters causes a 1–2s
+  // flash where the header shows "Sign in" before flipping to the
+  // real signed-in state. Display-only — gating helpers still trust
+  // only the live cachedUser/cachedPro set by onAuthStateChanged.
+  const DISPLAY_HINT_KEY = 'ms101_display_hint';
+  let displayHint = null;      // null | { email, pro }
+  try {
+    const raw = localStorage.getItem(DISPLAY_HINT_KEY);
+    if (raw) displayHint = JSON.parse(raw);
+  } catch (e) { /* ignore */ }
+
+  function writeDisplayHint(user, pro) {
+    try {
+      if (user && user.email) {
+        const next = { email: user.email, pro: !!pro };
+        displayHint = next;
+        localStorage.setItem(DISPLAY_HINT_KEY, JSON.stringify(next));
+      } else {
+        displayHint = null;
+        localStorage.removeItem(DISPLAY_HINT_KEY);
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  // Toggle body.pro-user from the hint as early as possible so .pro-card
+  // overlays don't flash on/off on each chapter navigation for pro users.
+  if (displayHint && displayHint.pro) {
+    if (document.body) {
+      document.body.classList.add('pro-user');
+    } else {
+      document.addEventListener('DOMContentLoaded', () => {
+        if (displayHint && displayHint.pro) document.body.classList.add('pro-user');
+      });
+    }
+  }
+
   function onAuthReady(fn) {
     if (firebaseReady) fn();
     else onReadyCallbacks.push(fn);
@@ -99,6 +138,10 @@
           cachedUser = null;
           cachedPro  = false;
         }
+
+        // Persist a small display hint for the next page load (cuts the
+        // ~1s header flash on chapter→chapter navigation).
+        writeDisplayHint(cachedUser, cachedPro);
 
         // Sync DOM-level state for all the gating helpers that read it.
         if (document.body) {
@@ -461,6 +504,7 @@
         console.error('refreshProState: read failed', e);
       }
     }
+    writeDisplayHint(cachedUser, cachedPro);
     if (document.body) document.body.classList.toggle('pro-user', cachedPro);
     return cachedPro;
   }
@@ -491,9 +535,17 @@
     if (!el) return;
     el.classList.add('account-widget');
 
-    const user = getCurrentUser();
-    const pro  = isProUser();
-    const ret  = encodeURIComponent(window.location.href);
+    // Prefer live state (set by Firebase onAuthStateChanged). Fall back
+    // to the persisted display hint *only* before Firebase has finished
+    // loading, so the widget renders the last-known identity instantly
+    // on each new page instead of flashing "Sign in" for ~1s.
+    let user = getCurrentUser();
+    let pro  = isProUser();
+    if (!user && !firebaseReady && displayHint) {
+      user = { email: displayHint.email };
+      pro  = !!displayHint.pro;
+    }
+    const ret = encodeURIComponent(window.location.href);
 
     // Keep body class in sync so all CSS pro-gates resolve correctly.
     if (document.body) document.body.classList.toggle('pro-user', pro);

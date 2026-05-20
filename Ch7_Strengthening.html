@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ch.7 — Dislocations &amp; Strengthening Mechanisms</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai+Looped:wght@300;400;500;700&display=swap" rel="stylesheet">
 <style>
@@ -1974,6 +1976,19 @@ math mi { font-style: italic; }
   new ResizeObserver(resize).observe(cv);
   resize();
 })();
+</script>
+<script src="auth.js"></script>
+<script>
+  (function () {
+    function init() {
+      if (window.AuthMock) AuthMock.initChapterPage();
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
 </script>
 </body>
 </html>
