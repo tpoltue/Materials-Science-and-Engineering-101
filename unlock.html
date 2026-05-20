@@ -169,6 +169,23 @@
   }
   .btn-secondary:hover { background: #f4f4f4; }
 
+  .back-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    align-self: flex-start;
+    margin-bottom: 18px;
+    font-size: 12.5px; font-weight: 500; color: var(--ink-soft);
+    text-decoration: none;
+    background: #fafafa;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 14px 6px 11px;
+    line-height: 1;
+    transition: background 0.18s, color 0.18s, border-color 0.18s;
+  }
+  .back-pill:hover {
+    background: #fff; color: var(--ink); border-color: var(--line-strong);
+  }
+
   .footer-row {
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px; margin-top: 14px;
@@ -235,10 +252,8 @@
     const proCancel  = params.get('pro') === 'cancel';
     const cardBody = document.getElementById('cardBody');
 
-    // ─── Manual PromptPay fallback (only used if Stripe is unavailable) ─
-    const PROMPTPAY_NUMBER = '093-456-4616';
-    const RECEIPT_EMAIL    = 'tpoltue@gmail.com';
-    const PRICE_THB        = '฿199';
+    const RECEIPT_EMAIL = 'tpoltue@gmail.com';
+    const PRICE_THB     = '฿199';
 
     /* ─── Renderers ─────────────────────────────────────────────── */
 
@@ -275,19 +290,11 @@
     }
 
     function renderUpgrade(user) {
-      const subject = encodeURIComponent('Pro upgrade (manual) — Materials Science 101');
-      const bodyText =
-        'Hi Mark,\n\n' +
-        'I paid ' + PRICE_THB + ' via PromptPay to ' + PROMPTPAY_NUMBER + ' (Stripe wasn\'t working).\n' +
-        'Please upgrade my account to Pro.\n\n' +
-        'Account ID: ' + (user.uid || '') + '\n' +
-        'Email: ' + (user.email || '') + '\n\n' +
-        '(Receipt screenshot attached.)\n';
-      const mailto = 'mailto:' + RECEIPT_EMAIL +
-                     '?subject=' + subject +
-                     '&body=' + encodeURIComponent(bodyText);
-
       cardBody.innerHTML = `
+        <a href="${returnUrl}" class="back-pill">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 4L6 8l4 4"/></svg>
+          Back to tutorial
+        </a>
         <div class="eyebrow">Materials Science 101</div>
         <h1>Unlock Pro</h1>
         <p class="subtitle">One-time payment. Lifetime access to gated visualizers, derivations, and exact numeric values across every chapter.</p>
@@ -307,32 +314,14 @@
           <li>Ch.10 — TTT/CCT microstructure + 4-point heat-treatment paths</li>
         </ul>
 
-        <div class="account-info">
-          <div class="account-info-row">
-            <span style="color:#666;">Your account</span>
-            <code>${user.email || '—'}</code>
-          </div>
-          <div class="account-info-row">
-            <span style="color:#666;">Account ID</span>
-            <code>${user.uid}</code>
-          </div>
-        </div>
-
         ${proCancel ? '<div class="pending-note" style="margin-bottom:14px"><strong>Payment cancelled.</strong> No charge was made. Try again whenever you\'re ready.</div>' : ''}
 
         <button type="button" class="btn btn-primary" id="payBtn">Pay ${PRICE_THB} with Stripe</button>
         <div id="stripeError" style="color:#a02020;font-size:12px;min-height:18px;margin:6px 0 0;"></div>
 
-        <a href="${returnUrl}" class="btn btn-secondary">Back to tutorial</a>
-
-        <details style="margin-top:18px;font-size:12px;color:#666;">
-          <summary style="cursor:pointer;">Trouble paying? Try the manual PromptPay flow</summary>
-          <div style="margin-top:10px;line-height:1.55;">
-            Transfer ${PRICE_THB} via PromptPay to <strong>${PROMPTPAY_NUMBER}</strong>,
-            screenshot the receipt, then
-            <a href="${mailto}">email us</a> with your Account ID and we'll activate within 24 hours.
-          </div>
-        </details>
+        <div style="margin-top:18px;font-size:12px;color:#666;line-height:1.55;">
+          Trouble paying? Contact <a href="mailto:${RECEIPT_EMAIL}">${RECEIPT_EMAIL}</a>.
+        </div>
       `;
 
       document.getElementById('payBtn').addEventListener('click', async () => {
